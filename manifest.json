@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Simple Extension",
+  "name": "eXMM",
   "version": "1.0",
-  "description": "A simple browser extension example",
+  "description": "Exploit Mitigation Monitor",
   "permissions": ["storage"],
   "action": {
     "default_popup": "main.html",

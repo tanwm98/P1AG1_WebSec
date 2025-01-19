@@ -1,2 +1,87 @@
-<h1>Tab 1 Content</h1>
-<p>This is the content loaded from tab1.html.</p>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Web Info</title>
+  <style>
+    h1 {
+      font-size: 18px;
+      margin: 10px;
+    }
+    p {
+        margin: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Web Info</h1>
+  <p>URL: <span id="url">Loading...</span></p>
+  <p>IPv4: <span id="ipv4">Loading...</span></p>
+  <p>IPv6: <span id="ipv6">Loading...</span></p>
+  <p>NS Servers: <span id="ns">Loading...</span></p>
+  <p>MX Servers: <span id="mx">Loading...</span></p>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const urlElement = document.getElementById("url");
+      const ipv4Element = document.getElementById("ipv4");
+      const ipv6Element = document.getElementById("ipv6");
+      const nsElement = document.getElementById("ns");
+      const mxElement = document.getElementById("mx");
+
+      // Fetch the current tab's URL
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const url = new URL(tab.url);
+
+      urlElement.textContent = url.href;
+
+      // DNS resolution logic (local JavaScript-based resolution simulation)
+      const resolveDNS = (domain, type) => {
+        return new Promise((resolve) => {
+          chrome.runtime.sendMessage({ domain, type }, (response) => {
+            resolve(response || []);
+          });
+        });
+      };
+
+      // Fetch DNS details
+      const ipv4 = await resolveDNS(url.hostname, "A");
+      const ipv6 = await resolveDNS(url.hostname, "AAAA");
+      const ns = await resolveDNS(url.hostname, "NS");
+      const mx = await resolveDNS(url.hostname, "MX");
+
+      // Update the UI
+      ipv4Element.textContent = ipv4.join(", ") || "Not Found";
+      ipv6Element.textContent = ipv6.join(", ") || "Not Found";
+      nsElement.textContent = ns.join(", ") || "Not Found";
+      mxElement.textContent = mx.join(", ") || "Not Found";
+    });
+
+    // Listener for DNS resolution in the background
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      const dns = require("dns");
+      const { domain, type } = request;
+
+      switch (type) {
+        case "A":
+          dns.resolve4(domain, (err, addresses) => sendResponse(addresses));
+          break;
+        case "AAAA":
+          dns.resolve6(domain, (err, addresses) => sendResponse(addresses));
+          break;
+        case "NS":
+          dns.resolveNs(domain, (err, addresses) => sendResponse(addresses));
+          break;
+        case "MX":
+          dns.resolveMx(domain, (err, addresses) => {
+            const mxRecords = addresses?.map((record) => record.exchange);
+            sendResponse(mxRecords);
+          });
+          break;
+        default:
+          sendResponse([]);
+      }
+      return true; // Indicate asynchronous response
+    });
+  </script>
+</body>
+</html>
