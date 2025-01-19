@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple Extension</title>
+  <style>
+    body {
+    width: 400px; /* Desired width */
+    height: 600px; /* Desired height */
+    margin: 0;
+    overflow: hidden; /* Prevent scrollbars */
+    }
+    .navbar {
+      background-color: #333;
+      overflow: hidden;
+      display: flex;
+    }
+    .navbar a {
+      flex: 1;
+      color: white;
+      text-align: center;
+      padding: 14px 16px;
+      text-decoration: none;
+      font-size: 16px;
+    }
+    .navbar a:hover {
+      background-color: #575757;
+    }
+    .tab-content {
+      padding: 20px;
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <a href="#" class="tab-link" data-file="tab1.html">Tab 1</a>
+    <a href="#" class="tab-link" data-file="tab2.html">Tab 2</a>
+    <a href="#" class="tab-link" data-file="tab3.html">Tab 3</a>
+    <a href="#" class="tab-link" data-file="tab4.html">Tab 4</a>
+  </div>
+  <div id="tab-content">
+    <p>Click a tab to load content.</p>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
