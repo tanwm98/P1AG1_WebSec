@@ -1,93 +1,105 @@
-import React, { useState, useEffect } from 'react';
+// Function to extract URLs from text content using regex
+function extractURLs(text) {
+  const urlRegex = /(https?:\/\/[^\s<>"']+|\/[^\s<>"']+)/g;
+  return text.match(urlRegex) || [];
+}
 
-const EndpointParser = () => {
-  const [isAutoParseEnabled, setIsAutoParseEnabled] = useState(false);
-  const [urlCount, setUrlCount] = useState(0);
-  const [endpoints, setEndpoints] = useState([]);
+// Parse JavaScript files for additional endpoints
+async function parseJavaScriptFile(url) {
+  try {
+    const response = await fetch(url);
+    const jsContent = await response.text();
+    return extractURLs(jsContent);
+  } catch (error) {
+    console.error(`Error parsing JS file ${url}:`, error);
+    return [];
+  }
+}
 
-  useEffect(() => {
-    // Load saved state from chrome.storage
-    chrome.storage.local.get(['autoParseEnabled', 'endpoints'], (result) => {
-      if (result.autoParseEnabled !== undefined) {
-        setIsAutoParseEnabled(result.autoParseEnabled);
-      }
-      if (result.endpoints) {
-        setEndpoints(result.endpoints);
-        setUrlCount(result.endpoints.length);
-      }
+// Main parsing function
+window.parseEndpoints = async function() {
+  const endpoints = new Set();
+  
+  // Parse DOM elements
+  const elements = {
+    links: document.querySelectorAll('a[href]'),
+    scripts: document.querySelectorAll('script[src]'),
+    images: document.querySelectorAll('img[src]'),
+    forms: document.querySelectorAll('form[action]'),
+    iframes: document.querySelectorAll('iframe[src]'),
+    sources: document.querySelectorAll('source[src]'),
+    links: document.querySelectorAll('link[href]')
+  };
+
+  // Extract URLs from elements
+  for (const [type, nodeList] of Object.entries(elements)) {
+    nodeList.forEach(element => {
+      const url = type === 'links' ? element.href : element.src;
+      if (url) endpoints.add(url);
     });
-  }, []);
+  }
 
-  const handleAutoParseToggle = () => {
-    const newState = !isAutoParseEnabled;
-    setIsAutoParseEnabled(newState);
-    chrome.storage.local.set({ autoParseEnabled: newState });
+  // Parse inline scripts
+  document.querySelectorAll('script:not([src])').forEach(script => {
+    const foundUrls = extractURLs(script.textContent);
+    foundUrls.forEach(url => endpoints.add(url));
+  });
+
+  // Parse external JavaScript files
+  const jsFiles = Array.from(document.querySelectorAll('script[src]'))
+    .map(script => script.src)
+    .filter(src => src.endsWith('.js'));
+
+  for (const jsFile of jsFiles) {
+    const jsEndpoints = await parseJavaScriptFile(jsFile);
+    jsEndpoints.forEach(endpoint => endpoints.add(endpoint));
+  }
+
+  // Monitor network requests
+  const originalFetch = window.fetch;
+  window.fetch = function(...args) {
+    const url = typeof args[0] === 'string' ? args[0] : args[0].url;
+    endpoints.add(url);
+    return originalFetch.apply(this, args);
   };
 
-  const handleReparse = () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.tabs.sendMessage(tabs[0].id, { action: "parseEndpoints" });
-    });
+  // Monitor XHR requests
+  const originalOpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function(...args) {
+    endpoints.add(args[1]); // args[1] is the URL
+    return originalOpen.apply(this, args);
   };
 
-  const clearEndpoints = () => {
-    setEndpoints([]);
-    setUrlCount(0);
-    chrome.storage.local.set({ endpoints: [] });
-  };
+  // Filter and classify endpoints
+  const processedEndpoints = Array.from(endpoints).map(url => ({
+    url: url,
+    type: classifyEndpoint(url),
+    source: determineSource(url)
+  }));
 
-  return (
-    <div className="w-full max-w-2xl mx-auto p-4 space-y-4">
-      {/* URL Counter Header */}
-      <div className="bg-gray-800 text-white rounded-lg p-4">
-        <h2 className="text-xl font-bold text-center">URLs ({urlCount})</h2>
-      </div>
+  return processedEndpoints;
+}
 
-      {/* Action Buttons */}
-      <div className="grid grid-cols-2 gap-4">
-        <button
-          onClick={clearEndpoints}
-          className="bg-gray-700 hover:bg-gray-600 text-white p-6 rounded-lg flex flex-col items-center"
-        >
-          <span className="material-icons mb-2">delete</span>
-          <span>Panel</span>
-        </button>
-        <button
-          onClick={handleReparse}
-          className="bg-gray-900 hover:bg-gray-800 text-white p-6 rounded-lg flex flex-col items-center"
-        >
-          <span className="material-icons mb-2">refresh</span>
-          <span>REPARSE</span>
-        </button>
-      </div>
+// Classify endpoint types
+function classifyEndpoint(url) {
+  const extension = url.split('.').pop().toLowerCase();
+  const path = new URL(url).pathname;
+  
+  if (extension.match(/^(jpg|jpeg|png|gif|svg|webp)$/)) return 'Image';
+  if (extension.match(/^(js)$/)) return 'JavaScript';
+  if (extension.match(/^(css)$/)) return 'Stylesheet';
+  if (extension.match(/^(json)$/)) return 'API';
+  if (path.includes('/api/')) return 'API';
+  return 'Other';
+}
 
-      {/* Auto Parser Section */}
-      <div className="bg-gray-800 text-white rounded-lg p-4">
-        <h3 className="text-xl font-medium text-center text-orange-400">
-          Auto Parser
-        </h3>
-        <div className="flex flex-col items-center mt-2">
-          <p className="text-gray-300 text-sm">
-            Auto parses after page load
-          </p>
-          <div className="flex items-center mt-2">
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="sr-only peer"
-                checked={isAutoParseEnabled}
-                onChange={handleAutoParseToggle}
-              />
-              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-400"></div>
-            </label>
-            <span className={`ml-3 ${isAutoParseEnabled ? 'text-orange-400' : 'text-gray-400'}`}>
-              {isAutoParseEnabled ? 'ON' : 'OFF'}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default EndpointParser;
+// Determine source of endpoint
+function determineSource(url) {
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.host === window.location.host) return 'Internal';
+    return 'External';
+  } catch {
+    return 'Invalid URL';
+  }
+}

@@ -6,7 +6,9 @@
   "permissions": [
     "activeTab",
     "scripting",
-    "storage"
+    "storage",
+    "webNavigation",
+    "tabs"
   ],
   "host_permissions": [
     "https://dns.google/*",
@@ -23,7 +25,11 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["script/Parser.jsx"]
+      "js": ["script/Parser.jsx", "script/urlParser.js"],
+      "run_at": "document_end"
     }
-  ]
+  ],
+  "background": {
+    "service_worker": "script/background.js"
+  }
 }

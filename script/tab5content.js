@@ -1,83 +1,85 @@
-// Listen for messages from the popup
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "parseEndpoints") {
-    parsePageEndpoints();
-  }
+class URLParser {
+    static parseURL(url) {
+        try {
+            const urlObj = new URL(url);
+            return {
+                url: url,
+                protocol: urlObj.protocol,
+                hostname: urlObj.hostname,
+                pathname: urlObj.pathname,
+                search: urlObj.search,
+                hash: urlObj.hash,
+                type: 'regular'
+            };
+        } catch (e) {
+            return {
+                url: url,
+                type: 'invalid'
+            };
+        }
+    }
+
+    static findURLsInPage() {
+        const urls = [];
+        
+        // Get all links
+        document.querySelectorAll('a[href]').forEach(link => {
+            if (link.href && !link.href.startsWith('javascript:')) {
+                try {
+                    const url = new URL(link.href);
+                    urls.push({
+                        url: link.href,
+                        source: 'link',
+                        type: 'regular'
+                    });
+                } catch (e) {
+                    // Skip invalid URLs
+                }
+            }
+        });
+
+        // Get form actions
+        document.querySelectorAll('form[action]').forEach(form => {
+            if (form.action && !form.action.startsWith('javascript:')) {
+                try {
+                    const url = new URL(form.action);
+                    urls.push({
+                        url: form.action,
+                        source: 'form',
+                        type: 'form'
+                    });
+                } catch (e) {
+                    // Skip invalid URLs
+                }
+            }
+        });
+
+        // Remove duplicates
+        const uniqueUrls = Array.from(new Set(urls.map(u => u.url)))
+            .map(url => urls.find(u => u.url === url));
+
+        return uniqueUrls;
+    }
+}
+
+// Initialize - parse URLs when content script loads
+const initialUrls = URLParser.findURLsInPage();
+chrome.storage.local.set({ endpoints: initialUrls }, () => {
+    chrome.runtime.sendMessage({
+        action: 'endpointsUpdated',
+        count: initialUrls.length
+    });
 });
 
-// Function to parse endpoints from the page
-function parsePageEndpoints() {
-  const endpoints = new Set();
-
-  // Parse from anchor tags
-  document.querySelectorAll('a').forEach(link => {
-    if (link.href) {
-      endpoints.add(link.href);
+// Listen for parse requests
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "parseEndpoints") {
+        const urls = URLParser.findURLsInPage();
+        chrome.storage.local.set({ endpoints: urls }, () => {
+            chrome.runtime.sendMessage({
+                action: 'endpointsUpdated',
+                count: urls.length
+            });
+        });
     }
-  });
-
-  // Parse from scripts
-  document.querySelectorAll('script').forEach(script => {
-    if (script.src) {
-      endpoints.add(script.src);
-    }
-  });
-
-  // Parse from forms
-  document.querySelectorAll('form').forEach(form => {
-    if (form.action) {
-      endpoints.add(form.action);
-    }
-  });
-
-  // Parse from fetch/XHR requests by injecting a script
-  const script = document.createElement('script');
-  script.textContent = `
-    // Override fetch
-    const originalFetch = window.fetch;
-    window.fetch = function(...args) {
-      const url = args[0];
-      if (typeof url === 'string') {
-        window.postMessage({ type: 'ENDPOINT_FOUND', endpoint: url }, '*');
-      }
-      return originalFetch.apply(this, args);
-    };
-
-    // Override XMLHttpRequest
-    const originalXHR = window.XMLHttpRequest.prototype.open;
-    window.XMLHttpRequest.prototype.open = function(...args) {
-      const url = args[1];
-      window.postMessage({ type: 'ENDPOINT_FOUND', endpoint: url }, '*');
-      return originalXHR.apply(this, args);
-    };
-  `;
-  document.documentElement.appendChild(script);
-
-  // Listen for messages from the injected script
-  window.addEventListener('message', (event) => {
-    if (event.data.type === 'ENDPOINT_FOUND') {
-      endpoints.add(event.data.endpoint);
-      updateStorage(Array.from(endpoints));
-    }
-  });
-
-  // Update storage with found endpoints
-  updateStorage(Array.from(endpoints));
-}
-
-// Function to update chrome storage with found endpoints
-function updateStorage(endpoints) {
-  chrome.storage.local.set({ endpoints: endpoints }, () => {
-    chrome.runtime.sendMessage({
-      action: 'endpointsUpdated',
-      count: endpoints.length
-    });
-  });
-}
-
-// Auto-parse if enabled
-chrome.storage.local.get(['autoParseEnabled'], (result) => {
-  if (result.autoParseEnabled) {
-    parsePageEndpoints();
-  }
 });

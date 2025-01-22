@@ -106,6 +106,59 @@
         input:checked + .slider:before {
             transform: translateX(26px);
         }
+
+        .url-display {
+            background-color: #2d3748;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .url-item {
+            font-family: monospace;
+            word-break: break-all;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #4a5568;
+        }
+
+        .download-btn {
+            background-color: transparent;
+            border: 1px solid #4a5568;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 1rem;
+            width: 100%;
+        }
+
+        .download-btn:hover {
+            background-color: #4a5568;
+        }
+
+        .filter-container {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #2d3748;
+            border-radius: 8px;
+        }
+
+        .filter-input {
+            width: 100%;
+            padding: 0.5rem;
+            background-color: #1a1a1a;
+            border: 1px solid #4a5568;
+            color: white;
+            border-radius: 4px;
+        }
+
+        .info-text {
+            color: #a0aec0;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -125,6 +178,15 @@
         </button>
     </div>
 
+    <div class="filter-container">
+        <input type="text" id="urlFilter" class="filter-input" placeholder="Filter URLs...">
+        <p class="info-text">Filter by domain, path, or parameters</p>
+    </div>
+
+    <button id="downloadBtn" class="download-btn">
+        📥 Download URLs as .txt
+    </button>
+
     <div class="auto-parser">
         <h3>Auto Parser</h3>
         <p>Auto parses after page load</p>
@@ -134,8 +196,8 @@
         </label>
         <div id="toggleStatus">OFF</div>
     </div>
-</div>
 
-<script src="js/tab5.js"></script>
+    <div id="urlDisplay" class="url-display"></div>
+</div>
 </body>
 </html>
