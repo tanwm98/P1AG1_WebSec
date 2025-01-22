@@ -1,18 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Web Info</title>
+  <title>DAST Analyzer</title>
   <style>
     h1 {
       font-size: 18px;
       margin: 10px;
     }
-    p {
+    p, ul, table {
       margin: 10px;
     }
     span {
       font-weight: bold;
       color: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+    th {
+      background-color: #f2f2f2;
+      text-align: left;
     }
   </style>
 </head>
@@ -24,6 +36,20 @@
   <p>NS Servers: <span id="ns">Loading...</span></p>
   <p>MX Servers: <span id="mx">Loading...</span></p>
 
+  <h1>Security Header Analysis</h1>
+  <table id="headers">
+    <tr>
+      <th>Header</th>
+      <th>Status</th>
+    </tr>
+  </table>
+
+  <h1>Content Vulnerability Inspection</h1>
+  <p>Analyzing the page's technology stack...</p>
+  <ul id="vulnerabilities">
+    <li>Loading...</li>
+  </ul>
+
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
       const urlElement = document.getElementById("url");
@@ -31,6 +57,8 @@
       const ipv6Element = document.getElementById("ipv6");
       const nsElement = document.getElementById("ns");
       const mxElement = document.getElementById("mx");
+      const headersTable = document.getElementById("headers");
+      const vulnerabilitiesList = document.getElementById("vulnerabilities");
 
       try {
         // Get the active tab's URL
@@ -59,6 +87,68 @@
         ipv6Element.textContent = ipv6.join(", ") || "Not Found";
         nsElement.textContent = ns.join(", ") || "Not Found";
         mxElement.textContent = mx.join(", ") || "Not Found";
+
+        // Fetch headers of the page
+        const response = await fetch(tab.url);
+        const headers = [...response.headers.entries()];
+
+        // Analyze headers
+        const requiredHeaders = ["content-security-policy", "strict-transport-security", "x-frame-options", "x-content-type-options"];
+        headers.forEach(([key, value]) => {
+          const row = document.createElement("tr");
+          const status = requiredHeaders.includes(key.toLowerCase()) ? "Present" : "Extra";
+
+          row.innerHTML = `<td>${key}</td><td>${status}</td>`;
+          headersTable.appendChild(row);
+        });
+
+        requiredHeaders.forEach((header) => {
+          if (!headers.some(([key]) => key.toLowerCase() === header)) {
+            const row = document.createElement("tr");
+            row.innerHTML = `<td>${header}</td><td>Missing</td>`;
+            headersTable.appendChild(row);
+          }
+        });
+
+        // Update or fetch vulnerability database
+        const updateVulnerabilityDatabase = async () => {
+          const libraries = ["jquery", "lodash", "react"];
+          const vulnerabilityData = [];
+
+          for (const lib of libraries) {
+            const response = await fetch(`https://ossindex.sonatype.org/api/v3/component-report/${encodeURIComponent(lib)}`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data && data.vulnerabilities && data.vulnerabilities.length) {
+                vulnerabilityData.push({
+                  name: lib,
+                  vulnerabilities: data.vulnerabilities.map(vuln => ({
+                    id: vuln.id,
+                    title: vuln.title,
+                    description: vuln.description,
+                    cve: vuln.cve
+                  }))
+                });
+              }
+            }
+          }
+
+          // Store the updated data locally
+          await chrome.storage.local.set({ vulnerabilities: vulnerabilityData });
+          console.log("Vulnerability database updated.");
+          return vulnerabilityData;
+        };
+
+        const vulnData = await updateVulnerabilityDatabase();
+
+        // Analyze page content
+        const scripts = Array.from(document.scripts).map(script => script.src);
+        scripts.forEach((src) => {
+          const matched = vulnData.find(lib => src.includes(lib.name));
+          const listItem = document.createElement("li");
+          listItem.textContent = matched ? `${src} - Vulnerable (Known issue)` : `${src} - Secure`;
+          vulnerabilitiesList.appendChild(listItem);
+        });
       } catch (error) {
         console.error(error);
         urlElement.textContent = "Error: Unable to load.";
@@ -66,6 +156,7 @@
         ipv6Element.textContent = "Error.";
         nsElement.textContent = "Error.";
         mxElement.textContent = "Error.";
+        vulnerabilitiesList.innerHTML = "<li>Error analyzing vulnerabilities.</li>";
       }
     });
   </script>
