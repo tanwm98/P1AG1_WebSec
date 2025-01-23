@@ -4,13 +4,16 @@
   <title>Simple Extension</title>
   <style>
     body {
-    width: 400px; /* Desired width */
-    height: 600px; /* Desired height */
-    margin: 0;
-    overflow: hidden; /* Prevent scrollbars */
+      width: 800px;
+      height: 600px;
+      margin: 0;
+      overflow: hidden;
+      background-color: #1a1a1a;
+      color: white;
+      font-family: Arial, sans-serif;
     }
     .navbar {
-      background-color: #333;
+      background-color: #2d3748;
       overflow: hidden;
       display: flex;
     }
@@ -23,27 +26,132 @@
       font-size: 16px;
     }
     .navbar a:hover {
-      background-color: #575757;
+      background-color: #4a5568;
     }
     .tab-content {
       padding: 20px;
-      display: none;
     }
-    .tab-content.active {
-      display: block;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #4a5568;
+    }
+    th {
+      background-color: #2d3748;
+      color: #ed8936;
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      color: #ed8936;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    .section-title svg {
+      margin-right: 10px;
+    }
+    .view-link {
+      color: #63b3ed;
+      text-decoration: none;
+    }
+    .view-link:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
   <div class="navbar">
-    <a href="#" class="tab-link" data-file="tab1.html">Website Info</a>
+    <a href="#" class="tab-link" data-file="tab1.html">DNS Info</a>
     <a href="#" class="tab-link" data-file="tab2.html">Vulnerabilities</a>
     <a href="#" class="tab-link" data-file="tab3.html">Tab 3</a>
     <a href="#" class="tab-link" data-file="tab4.html">Tab 4</a>
-    <a href="#" class="tab-link" data-file="tab5.html">Tab 5</a>
+    <a href="#" class="tab-link" data-file="tab5.html">Endpoints</a>
   </div>
   <div id="tab-content">
-    <p>Click a tab to load content.</p>
+    <!-- Technology Stack Section -->
+    <div class="section-title">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M4 6h16v12H4z"></path>
+        <path d="M12 2v4"></path>
+        <path d="M8 2h8"></path>
+      </svg>
+      Technology stack
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Version</th>
+          <th>CVE</th>
+        </tr>
+      </thead>
+      <tbody id="techStackBody">
+        <!-- Will be populated by JavaScript -->
+      </tbody>
+    </table>
+
+    <!-- WAF/CDN Section -->
+    <div class="section-title">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </svg>
+      WAF / CDN
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="wafCdnBody">
+        <!-- Will be populated by JavaScript -->
+      </tbody>
+    </table>
+
+    <!-- OWASP Headers Section -->
+    <div class="section-title">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+      </svg>
+      OWASP Secure Headers
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Header Name</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody id="headersBody">
+        <!-- Will be populated by JavaScript -->
+      </tbody>
+    </table>
+
+    <!-- Storage/Authentication Section -->
+    <div class="section-title">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0110 0v4"></path>
+      </svg>
+      Storage / Authentication
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="storageBody">
+        <!-- Will be populated by JavaScript -->
+      </tbody>
+    </table>
   </div>
   <script src="popup.js"></script>
 </body>
