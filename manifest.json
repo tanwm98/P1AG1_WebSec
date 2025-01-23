@@ -3,17 +3,8 @@
   "name": "eXMM",
   "version": "1.0",
   "description": "Exploit Mitigation Monitor",
-  "permissions": [
-    "activeTab",
-    "scripting",
-    "storage",
-    "webNavigation",
-    "tabs"
-  ],
-  "host_permissions": [
-    "https://dns.google/*",
-    "<all_urls>"
-  ],
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": ["https://dns.google/*"],
   "action": {
     "default_popup": "main.html",
     "default_icon": {
@@ -21,15 +12,5 @@
       "48": "media/icon48.png",
       "128": "media/icon128.png"
     }
-  },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["script/Parser.jsx", "script/urlParser.js"],
-      "run_at": "document_end"
-    }
-  ],
-  "background": {
-    "service_worker": "script/background.js"
   }
 }
