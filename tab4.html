@@ -13,77 +13,9 @@
 </head>
 <body>
   <h1>Subdomain Scanner</h1>
-  <p>Click the button below to find subdomains using Google Dorking.</p>
-  <button id="scan-button">Scan for Subdomains</button>
+  <p>Scanning for subdomains</p>
   <ul id="subdomain-results"></ul>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", async () => {
-      console.log("DOM fully loaded and parsed");
-      const scanButton = document.getElementById("scan-button");
-      const subdomainResults = document.getElementById("subdomain-results");
-  
-      scanButton.addEventListener("click", async () => {
-        alert("Hello! The script is running.");
-        console.log("Scan button clicked");
-        subdomainResults.innerHTML = "<li>Scanning, please wait...</li>";
-  
-        try {
-          console.log("Attempting to get active tab...");
-  
-          // Check if chrome.tabs is available
-          if (!chrome.tabs) {
-            throw new Error("chrome.tabs API is not available. Make sure you are running this as a Chrome extension.");
-          }
-
-          // Get the active tab's URL
-          chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-            const tab = tabs[0];
-  
-            if (!tab || !tab.url) {
-              throw new Error("Cannot access active tab or URL.");
-            }
-  
-            console.log("Active tab found:", tab.url);
-  
-            const url = new URL(tab.url);
-            const domain = url.hostname.replace(/^www\./, '');
-            console.log("Extracted domain:", domain);
-  
-            // Call Flask backend API to fetch subdomains
-            const apiUrl = `http://localhost:5000/scan?domain=${domain}`;
-            console.log("Sending request to:", apiUrl);
-  
-            const response = await fetch(apiUrl);
-  
-            if (!response.ok) {
-              throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-  
-            const data = await response.json();
-            console.log("Received data:", data);
-  
-            subdomainResults.innerHTML = ""; // Clear previous results
-  
-            if (data.subdomains && data.subdomains.length > 0) {
-              data.subdomains.forEach(subdomain => {
-                const li = document.createElement("li");
-                li.textContent = subdomain;
-                li.classList.add("subdomain");
-                subdomainResults.appendChild(li);
-              });
-            } else {
-              subdomainResults.innerHTML = "<li class='error'>No subdomains found.</li>";
-            }
-          });
-  
-        } catch (error) {
-          console.error("Error:", error);
-          subdomainResults.innerHTML = `<li class='error'>Error: ${error.message}</li>`;
-        }
-      });
-    });
-  </script>
-  
+  <script src="tab4.js"></script>
 </body>
 </html>

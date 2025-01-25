@@ -20,6 +20,17 @@ tabs.forEach(tab => {
       })
       .then(data => {
         tabContent.innerHTML = data; // Load the new tab content
+        // Execute any scripts in the loaded content
+        const scripts = tabContent.getElementsByTagName('script');
+        Array.from(scripts).forEach(script => {
+          const newScript = document.createElement('script');
+          if (script.src) {
+            newScript.src = script.src;
+          } else {
+            newScript.textContent = script.textContent;
+          }
+          script.parentNode.replaceChild(newScript, script);
+        });
       })
       .catch(error => {
         console.error('Error loading tab content:', error);
