@@ -1,7 +1,99 @@
-<h1>Technology Vulnerabilities</h1>
-<p>Analyze the page's technology stack to identify potential vulnerabilities in libraries, frameworks, and third-party integrations.</p>
-<ul>
-  <li>Common Framework Issues: Outdated versions, security flaws.</li>
-  <li>Library Risks: Known vulnerabilities in dependencies.</li>
-  <li>Third-Party Concerns: Untrusted integrations or CDN-hosted files.</li>
-</ul>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Software Composition Analysis (SCA)</title>
+  <style>
+    body {
+      
+      margin: 0; /* Ensure no margin for the navbar */
+    }
+
+    .content {
+      font-family: Arial, sans-serif;
+      padding: 20px; /* Add padding only to the content below the navbar */
+      box-sizing: border-box;
+    }
+
+    h2, h3 {
+      color: #333;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #007BFF; /* Blue button */
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    button:hover {
+      background-color: #0056b3; /* Darker blue */
+    }
+
+    #analysis-results {
+      overflow-x: auto; /* Enable horizontal scrolling if necessary */
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      word-wrap: break-word; /* Wrap long text */
+      table-layout: auto; /* Default table layout */
+    }
+
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+
+    th, td {
+      padding: 10px; /* Add padding inside table cells */
+      text-align: left;
+    }
+
+    th {
+      background-color: #f2f2f2;
+      color: #333;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+
+    /* Prevent text from being cut off and allow horizontal scrolling */
+    td {
+      white-space: nowrap; /* Prevent text from wrapping */
+    }
+  </style>
+  <script src="tab2.js"></script> 
+</head>
+<body>
+  <div class="content">
+    <h2>Software Composition Analysis (SCA)</h2>
+    <p>Currently only scanning the web page's source code for links and dependencies.</p>
+    <br>
+    <button id="analyze-btn">Scan Now</button>
+    <div id="analysis-results">
+      <h3>Results:</h3>
+      <table id="results-table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Results will be populated here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
