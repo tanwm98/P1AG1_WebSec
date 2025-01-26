@@ -20,6 +20,14 @@ tabs.forEach(tab => {
       })
       .then(data => {
         tabContent.innerHTML = data; // Load the new tab content
+
+        // Dynamically load tab2.js if tab2.html is loaded
+        if (file === 'tab2.html') {
+          const script = document.createElement('script');
+          script.src = 'tab2.js';
+          script.onload = () => initializeStaticAnalysis();
+          document.body.appendChild(script);
+        }
       })
       .catch(error => {
         console.error('Error loading tab content:', error);
