@@ -1,0 +1,107 @@
+.security-tester-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 400px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 999999;
+    font-family: Arial, sans-serif;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .security-tester-header {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .security-tester-content {
+    padding: 15px;
+  }
+  
+  .security-test-button {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  .security-test-button:hover {
+    background: #45a049;
+  }
+  
+  .security-test-button:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+  }
+  
+  .stats-summary {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+  }
+  
+  .vulnerability-summary {
+    background: #fff3cd;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+  }
+  
+  .vuln-category {
+    margin: 10px 0;
+  }
+  
+  .vuln-category h4 {
+    color: #dc3545;
+    margin: 5px 0;
+  }
+  
+  .field-result {
+    margin: 10px 0;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  
+  .field-result.vulnerable {
+    border-left: 4px solid #ff4444;
+  }
+  
+  .field-result.safe {
+    border-left: 4px solid #4CAF50;
+  }
+  
+  .vulnerability-list {
+    margin-top: 5px;
+    color: #ff4444;
+  }
+  
+  .test-details code {
+    background: #f8f9fa;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.9em;
+  }
+  
+  .close-button {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    font-size: 18px;
+  }
+  
+  .close-button:hover {
+    color: #333;
+  }

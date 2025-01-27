@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            width: 600px;
+            /* Desired width */
+            height: 400px;
+            padding: 15px;
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        #testButton {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        #testButton:hover {
+            background-color: #45a049;
+        }
+
+        #testButton:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        #results {
+            margin-top: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .stats-summary {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .vulnerability-summary {
+            background-color: #fff3cd;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .vuln-category {
+            margin: 10px 0;
+        }
+
+        .vuln-category h4 {
+            color: #dc3545;
+            margin: 5px 0;
+        }
+
+        .field-result {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .vulnerable {
+            border-left: 4px solid #ff4444;
+        }
+
+        .safe {
+            border-left: 4px solid #4CAF50;
+        }
+
+        .field-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .vulnerability-list {
+            margin-top: 5px;
+            color: #ff4444;
+        }
+
+        .test-details {
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .progress {
+            margin-top: 10px;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <button id="testButton">Test Input Field Security</button>
+    <div id="results"></div>
+    <script src="popup.js"></script>
+</body>
+
+</html>
