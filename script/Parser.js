@@ -28,7 +28,7 @@ window.parseEndpoints = async function() {
     forms: document.querySelectorAll('form[action]'),
     iframes: document.querySelectorAll('iframe[src]'),
     sources: document.querySelectorAll('source[src]'),
-    links: document.querySelectorAll('link[href]')
+    linkTag: document.querySelectorAll('link[href]')
   };
 
   // Extract URLs from elements
