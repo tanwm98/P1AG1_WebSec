@@ -2,67 +2,7 @@
 <html>
 <head>
   <title>Simple Extension</title>
-  <style>
-    body {
-      width: 800px;
-      height: 600px;
-      margin: 0;
-      overflow: hidden;
-      background-color: #1a1a1a;
-      color: white;
-      font-family: Arial, sans-serif;
-    }
-    .navbar {
-      background-color: #2d3748;
-      overflow: hidden;
-      display: flex;
-    }
-    .navbar a {
-      flex: 1;
-      color: white;
-      text-align: center;
-      padding: 14px 16px;
-      text-decoration: none;
-      font-size: 16px;
-    }
-    .navbar a:hover {
-      background-color: #4a5568;
-    }
-    .tab-content {
-      padding: 20px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-    }
-    th, td {
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid #4a5568;
-    }
-    th {
-      background-color: #2d3748;
-      color: #ed8936;
-    }
-    .section-title {
-      display: flex;
-      align-items: center;
-      color: #ed8936;
-      margin-bottom: 15px;
-      font-size: 18px;
-    }
-    .section-title svg {
-      margin-right: 10px;
-    }
-    .view-link {
-      color: #63b3ed;
-      text-decoration: none;
-    }
-    .view-link:hover {
-      text-decoration: underline;
-    }
-  </style>
+  <link rel="stylesheet" href="style/main.css" media="all">
 </head>
 <body>
   <div class="navbar">
@@ -153,6 +93,6 @@
       </tbody>
     </table>
   </div>
-  <script src="popup.js"></script>
+  <script type="module" src="popup.js"></script>
 </body>
 </html>

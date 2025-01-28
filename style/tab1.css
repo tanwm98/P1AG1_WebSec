@@ -1,59 +1,33 @@
     body {
-      width: 800px;
-      height: 600px;
-      margin: 0;
-      overflow: hidden;
       background-color: #1a1a1a;
-      color: white;
+      color: #ffffff;
       font-family: Arial, sans-serif;
-    }
-    .navbar {
-      background-color: #2d3748;
-      overflow: hidden;
-      display: flex;
-    }
-    .navbar a {
-      flex: 1;
-      color: white;
-      text-align: center;
-      padding: 14px 16px;
-      text-decoration: none;
-      font-size: 16px;
-    }
-    .navbar a:hover {
-      background-color: #4a5568;
-    }
-    .tab-content {
       padding: 20px;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-    }
-    th, td {
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid #4a5568;
-    }
-    th {
+    .info-section {
       background-color: #2d3748;
-      color: #ed8936;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
     }
-    .section-title {
+    .info-title {
+      color: #ed8936;
+      font-size: 16px;
+      margin-bottom: 10px;
       display: flex;
       align-items: center;
-      color: #ed8936;
-      margin-bottom: 15px;
-      font-size: 18px;
     }
-    .section-title svg {
+    .info-title svg {
       margin-right: 10px;
     }
-    .view-link {
-      color: #63b3ed;
-      text-decoration: none;
+    .info-content {
+      background-color: #1a1a1a;
+      padding: 10px;
+      border-radius: 4px;
+      word-break: break-all;
     }
-    .view-link:hover {
-      text-decoration: underline;
+    .label {
+      color: #a0aec0;
+      font-size: 14px;
+      margin-bottom: 5px;
     }
