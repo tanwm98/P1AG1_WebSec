@@ -94,9 +94,13 @@ export function initializeTab5() {
     });
 
     panelBtn.addEventListener('click', function() {
-        chrome.storage.local.set({ endpoints: [] });
-        urlCountElement.textContent = '0';
-        displayUrls([]);
+        // Open panel.html in a new window
+        chrome.windows.create({
+            url: chrome.runtime.getURL('panel.html'),
+            type: 'popup',
+            width: 1200,
+            height: 800
+        });
     });
 
     reparseBtn.addEventListener('click', handleReparse);

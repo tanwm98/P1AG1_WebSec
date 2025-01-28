@@ -15,9 +15,8 @@
   },
   "content_scripts": [
     {
-      "matches":
-      ["<all_urls>"],
-      "js": ["script/Parser.js", "script/urlParser.js"]
+      "matches": ["<all_urls>"],
+      "js": ["script/urlParser.js"]
     }
   ],
   "background": {
