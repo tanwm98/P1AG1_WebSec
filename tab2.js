@@ -77,44 +77,57 @@ function initializeStaticAnalysis() {
   }
 
   function detectLibrary(url) {
-    // Common JavaScript libraries with regex patterns
     const libraryPatterns = [
-      { name: 'jQuery', regex: /jquery(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'Bootstrap', regex: /bootstrap(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'AngularJS', regex: /angular(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'React', regex: /react(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'Vue.js', regex: /vue(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'Lodash', regex: /lodash(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'Moment.js', regex: /moment(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'GSAP', regex: /gsap(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'FontAwesome', regex: /fontawesome/i },
-      { name: 'D3.js', regex: /d3(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'Three.js', regex: /three(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'Axios', regex: /axios(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'Chart.js', regex: /chart(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'Slick Carousel', regex: /slick(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'Swiper', regex: /swiper(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'Tailwind CSS', regex: /tailwind(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'Ember.js', regex: /ember(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'Backbone.js', regex: /backbone(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'Matter.js', regex: /matter(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'Three.js', regex: /three(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'PixiJS', regex: /pixi(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'Popper.js', regex: /popper(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'FullCalendar', regex: /fullcalendar(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'GraphQL', regex: /graphql(?:[-.](\d+\.\d+\.\d+))?/i },
-      { name: 'Socket.IO', regex: /socket.io(?:[-.](\d+\.\d+\.\d+))?/i }
+        { name: 'jQuery', regex: /jquery(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'Bootstrap', regex: /bootstrap(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'AngularJS', regex: /angular(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'React', regex: /react(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'Vue.js', regex: /vue(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'Lodash', regex: /lodash(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'Moment.js', regex: /moment(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'GSAP', regex: /gsap(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'FontAwesome', regex: /fontawesome/gi },
+        { name: 'D3.js', regex: /d3(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'Three.js', regex: /three(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'Axios', regex: /axios(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'Chart.js', regex: /chart(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'Slick Carousel', regex: /slick(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'Swiper', regex: /swiper(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'Tailwind CSS', regex: /tailwind(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'Ember.js', regex: /ember(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'Backbone.js', regex: /backbone(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'Matter.js', regex: /matter(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'PixiJS', regex: /pixi(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'Popper.js', regex: /popper(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'FullCalendar', regex: /fullcalendar(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'GraphQL', regex: /graphql(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+        { name: 'Socket.IO', regex: /socket.io(?:[-./@])?(\d+\.\d+\.\d+)?/gi }
     ];
 
+    let detectedLibraries = [];
+
     for (let pattern of libraryPatterns) {
-      let match = url.match(pattern.regex);
-      if (match) {
-        return match[1] ? `${pattern.name} (v${match[1]})` : pattern.name;
-      }
+        let matches = [...url.matchAll(pattern.regex)];
+
+        if (matches.length > 0) {
+            let lastValidVersion = null;
+
+            // Loop through all matches and find the last valid version
+            for (let match of matches) {
+                if (match[1]) {
+                    lastValidVersion = match[1];
+                }
+            }
+
+            // If a version was found, use it; otherwise, just the library name
+            detectedLibraries.push(lastValidVersion ? `${pattern.name} (v${lastValidVersion})` : pattern.name);
+        }
     }
 
-    return 'Unknown';
-  }
+    return detectedLibraries.length > 0 ? detectedLibraries.join(', ') : 'Unknown';
+}
+
+
 
   function analyzePage() {
     const pageDomain = window.location.hostname;
