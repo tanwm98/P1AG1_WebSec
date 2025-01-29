@@ -1,10 +1,7 @@
 // Function to initialize tab5 functionality
 export function initializeTab5() {
     const urlCountElement = document.getElementById('urlCount');
-    const autoParseToggle = document.getElementById('autoParseToggle');
-    const toggleStatus = document.getElementById('toggleStatus');
     const panelBtn = document.getElementById('panelBtn');
-    const reparseBtn = document.getElementById('reparseBtn');
     const downloadBtn = document.getElementById('downloadBtn');
     const urlFilter = document.getElementById('urlFilter');
     const urlDisplay = document.getElementById('urlDisplay');
@@ -12,12 +9,7 @@ export function initializeTab5() {
     if (!urlCountElement) return; // Not on tab5
 
     // Get initial auto parse state
-    chrome.storage.local.get(['autoParseEnabled', 'endpoints'], (result) => {
-        if (result.autoParseEnabled !== undefined) {
-            autoParseToggle.checked = result.autoParseEnabled;
-            toggleStatus.textContent = result.autoParseEnabled ? 'ON' : 'OFF';
-            toggleStatus.style.color = result.autoParseEnabled ? '#ed8936' : '#a0aec0';
-        }
+    chrome.storage.local.get(['endpoints'], (result) => {
         if (result.endpoints) {
             urlCountElement.textContent = result.endpoints.length;
             displayUrls(result.endpoints);
@@ -43,12 +35,12 @@ export function initializeTab5() {
     function filterURLs(searchTerm) {
         chrome.storage.local.get(['endpoints'], (result) => {
             if (!result.endpoints) return;
-            
-            const filtered = searchTerm 
-                ? result.endpoints.filter(endpoint => 
+
+            const filtered = searchTerm
+                ? result.endpoints.filter(endpoint =>
                     endpoint.url.toLowerCase().includes(searchTerm.toLowerCase()))
                 : result.endpoints;
-                
+
             displayUrls(filtered);
         });
     }
@@ -81,29 +73,12 @@ export function initializeTab5() {
         });
     }
 
-    // Event Listeners
-    autoParseToggle.addEventListener('change', function() {
-        const isEnabled = this.checked;
-        chrome.storage.local.set({ autoParseEnabled: isEnabled });
-        toggleStatus.textContent = isEnabled ? 'ON' : 'OFF';
-        toggleStatus.style.color = isEnabled ? '#ed8936' : '#a0aec0';
-        
-        if (isEnabled) {
-            handleReparse();
-        }
-    });
-
     panelBtn.addEventListener('click', function() {
         // Open panel.html in a new window
-        chrome.windows.create({
-            url: chrome.runtime.getURL('panel.html'),
-            type: 'popup',
-            width: 1200,
-            height: 800
+        chrome.tabs.create({
+            url: chrome.runtime.getURL('panel.html')
         });
     });
-
-    reparseBtn.addEventListener('click', handleReparse);
 
     downloadBtn.addEventListener('click', downloadURLsAsTxt);
 

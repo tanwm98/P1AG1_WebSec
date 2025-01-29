@@ -1,6 +1,5 @@
     body {
-      width: 800px;
-      height: 600px;
+      width: 100%;
       margin: 0;
       overflow: hidden;
       background-color: #1a1a1a;

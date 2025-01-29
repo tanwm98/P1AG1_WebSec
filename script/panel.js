@@ -1,85 +1,78 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Get stored endpoints from extension storage
+    const endpointFilter = document.getElementById('endpointFilter');
+    const exportBtn = document.getElementById('exportBtn');
+    const endpointList = document.getElementById('endpointList');
+    const countElements = document.querySelectorAll('.count');
+
+    function updateDisplay(endpoints) {
+        // Update count displays
+
+        // Generate endpoints list with plain text buttons
+        const endpointsList = endpoints.map(endpoint => `
+            <div class="endpoint-group">
+                <div class="endpoint-line">
+                    <span class="endpoint-url">${endpoint.url}</span>
+                    <div class="endpoint-metadata">
+                        <span class="endpoint-actions">
+                            <button class="action-btn code-btn">[Code]</button>
+                            <button class="action-btn response-btn">[Response]</button>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        endpointList.innerHTML = endpointsList;
+
+        // Add event listeners for buttons
+        document.querySelectorAll('.code-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const url = this.closest('.endpoint-line').querySelector('.endpoint-url').textContent;
+                viewCode(url);
+            });
+        });
+
+        document.querySelectorAll('.response-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const url = this.closest('.endpoint-line').querySelector('.endpoint-url').textContent;
+                viewResponse(url);
+            });
+        });
+    }
+
+
+    // Get endpoints from storage and display
     chrome.storage.local.get(['endpoints'], function(result) {
         if (result.endpoints) {
-            displayEndpoints(result.endpoints);
+            updateDisplay(result.endpoints);
         }
     });
 
-    // Setup filter functionality
-    const filterInput = document.getElementById('endpointFilter');
-    filterInput.addEventListener('input', function(e) {
-        filterEndpoints(e.target.value);
+    // Filter functionality
+    endpointFilter.addEventListener('input', function(e) {
+        chrome.storage.local.get(['endpoints'], function(result) {
+            if (result.endpoints) {
+                const filtered = result.endpoints.filter(endpoint =>
+                    endpoint.url.toLowerCase().includes(e.target.value.toLowerCase())
+                );
+                updateDisplay(filtered);
+            }
+        });
     });
 
-    // Setup export functionality
-    document.getElementById('exportBtn').addEventListener('click', exportEndpoints);
+    // Export functionality
+    exportBtn.addEventListener('click', function() {
+        chrome.storage.local.get(['endpoints'], function(result) {
+            if (result.endpoints) {
+                const blob = new Blob([JSON.stringify(result.endpoints, null, 2)],
+                    {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'endpoints.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        });
+    });
 });
-
-function displayEndpoints(endpoints) {
-    const container = document.getElementById('endpointsContainer');
-    container.innerHTML = ''; // Clear existing content
-
-    endpoints.forEach(endpoint => {
-        const card = document.createElement('div');
-        card.className = 'endpoint-card';
-
-        // URL Section
-        const urlSection = document.createElement('div');
-        urlSection.className = 'endpoint-detail';
-        urlSection.innerHTML = `
-            <h4>URL</h4>
-            <span class="method-tag ${endpoint.method.toLowerCase()}">${endpoint.method}</span>
-            <span>${endpoint.url}</span>
-        `;
-
-        // Parameters Section
-        const paramsSection = document.createElement('div');
-        paramsSection.className = 'endpoint-detail';
-        paramsSection.innerHTML = `
-            <h4>Parameters</h4>
-            <ul class="params-list">
-                ${endpoint.parameters.map(param => `<li>${param}</li>`).join('')}
-            </ul>
-        `;
-
-        // Source Section
-        const sourceSection = document.createElement('div');
-        sourceSection.className = 'endpoint-detail';
-        sourceSection.innerHTML = `
-            <h4>Source</h4>
-            <span>${endpoint.source}</span>
-        `;
-
-        card.appendChild(urlSection);
-        card.appendChild(paramsSection);
-        card.appendChild(sourceSection);
-        container.appendChild(card);
-    });
-}
-
-function filterEndpoints(query) {
-    const cards = document.querySelectorAll('.endpoint-card');
-    query = query.toLowerCase();
-
-    cards.forEach(card => {
-        const text = card.textContent.toLowerCase();
-        card.style.display = text.includes(query) ? 'grid' : 'none';
-    });
-}
-
-function exportEndpoints() {
-    chrome.storage.local.get(['endpoints'], function(result) {
-        if (result.endpoints) {
-            const dataStr = JSON.stringify(result.endpoints, null, 2);
-            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-
-            const exportName = 'endpoints_' + new Date().toISOString().slice(0,10) + '.json';
-
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', exportName);
-            linkElement.click();
-        }
-    });
-}

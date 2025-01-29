@@ -3,13 +3,16 @@ body {
             color: white;
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 1rem;
+            width: 100vw;  /* Full viewport width */
+            box-sizing: border-box;  /* Include padding in width calculation */
         }
 
         .container {
             width: 100%;
-            max-width: 600px;
             margin: 0 auto;
+            overflow-x: hidden;  /* Prevent container overflow */
+            padding: 1 rem;  /* Add padding inside container */
+            box-sizing: border-box;
         }
 
         .header {
@@ -22,7 +25,8 @@ body {
 
         .button-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
+            width:100%;
             gap: 1rem;
             margin-bottom: 1rem;
         }
@@ -38,69 +42,14 @@ body {
             flex-direction: column;
             align-items: center;
             transition: background-color 0.2s;
+            width:100%;
+            grid-column: 1 / -1;
         }
 
         .action-button:hover {
             background-color: #2d3748;
         }
 
-        .auto-parser {
-            background-color: #2d3748;
-            padding: 1rem;
-            border-radius: 8px;
-            text-align: center;
-        }
-
-        .auto-parser h3 {
-            color: #ed8936;
-            margin-bottom: 0.5rem;
-        }
-
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 60px;
-            height: 34px;
-            margin: 10px;
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #4b5563;
-            transition: .4s;
-            border-radius: 34px;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 26px;
-            width: 26px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked + .slider {
-            background-color: #ed8936;
-        }
-
-        input:checked + .slider:before {
-            transform: translateX(26px);
-        }
 
         .url-display {
             background-color: #2d3748;
@@ -142,7 +91,6 @@ body {
 
         .filter-input {
             width: 100%;
-            padding: 0.5rem;
             background-color: #1a1a1a;
             border: 1px solid #4a5568;
             color: white;

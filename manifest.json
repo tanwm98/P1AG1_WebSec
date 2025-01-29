@@ -3,7 +3,7 @@
   "name": "eXMM",
   "version": "1.0",
   "description": "Exploit Mitigation Monitor",
-  "permissions": ["storage", "tabs"],
+  "permissions": ["storage", "tabs", "windows"],
   "host_permissions": ["https://dns.google/*"],
   "action": {
     "default_popup": "main.html",
