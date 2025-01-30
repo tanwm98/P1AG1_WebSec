@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-  <title>DNS Information</title>
+  <title>Security Analysis</title>
   <style>
     body {
       background-color: #1a1a1a;
@@ -9,12 +10,14 @@
       font-family: Arial, sans-serif;
       padding: 20px;
     }
+
     .info-section {
       background-color: #2d3748;
       padding: 15px;
       border-radius: 8px;
       margin-bottom: 15px;
     }
+
     .info-title {
       color: #ed8936;
       font-size: 16px;
@@ -22,23 +25,221 @@
       display: flex;
       align-items: center;
     }
+
     .info-title svg {
       margin-right: 10px;
     }
+
     .info-content {
       background-color: #1a1a1a;
       padding: 10px;
       border-radius: 4px;
       word-break: break-all;
     }
+
     .label {
       color: #a0aec0;
       font-size: 14px;
       margin-bottom: 5px;
     }
+
+    .vulnerability-high {
+      color: #f56565;
+    }
+
+    .vulnerability-medium {
+      color: #ed8936;
+    }
+
+    .vulnerability-low {
+      color: #48bb78;
+    }
+
+    .security-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    .security-table th,
+    .security-table td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #4a5568;
+    }
+
+    .security-table th {
+      color: #ed8936;
+    }
+
+    .scan-button {
+      background-color: #ed8936;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+
+    .scan-button:hover {
+      background-color: #dd6b20;
+    }
+
+    .sort-indicator {
+      display: inline-block;
+      margin-left: 5px;
+      font-size: 12px;
+      color: #a0aec0;
+    }
+
+    th[data-sort-state='asc'] .sort-indicator,
+    th[data-sort-state='desc'] .sort-indicator {
+      color: #ed8936;
+    }
+
+    .sort-indicator {
+      display: none;
+      margin-left: 5px;
+      font-size: 10px;
+      color: #ed8936;
+      vertical-align: middle;
+    }
+
+    th[data-sort-state='asc'] .sort-indicator,
+    th[data-sort-state='desc'] .sort-indicator {
+      display: inline-block;
+    }
+
+    /* Table cell width control */
+    .security-table td {
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .security-table td:hover {
+      white-space: normal;
+      word-wrap: break-word;
+    }
+
+    /* Download button styling */
+    .download-section {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #2d3748;
+      border-radius: 8px;
+    }
+
+    .download-button {
+      background-color: #ed8936;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .download-button:hover {
+      background-color: #dd6b20;
+    }
+
+    .scan-progress {
+      margin: 15px 0;
+      background-color: #2d3748;
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .progress-container {
+      width: 100%;
+      height: 20px;
+      background-color: #1a1a1a;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background-color: #ed8936;
+      transition: width 0.3s ease;
+    }
+
+    .scan-status {
+      color: #a0aec0;
+      font-size: 14px;
+      text-align: center;
+    }
   </style>
 </head>
+
 <body>
+  <div class="scan-progress">
+    <div class="progress-container">
+      <div class="progress-bar" id="scanProgress"></div>
+    </div>
+    <div class="scan-status" id="scanStatus">Initializing scan...</div>
+  </div>
+  <div class="info-section">
+    <div class="info-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </svg>
+      Security Headers Analysis
+    </div>
+    <table class="security-table" id="securityHeaders">
+      <thead>
+        <tr>
+          <th>Header</th>
+          <th>Status</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Will be populated by JavaScript -->
+      </tbody>
+    </table>
+  </div>
+
+  <div class="info-section">
+    <div class="info-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+      </svg>
+      SSL/TLS Analysis
+    </div>
+    <div id="sslContent" class="info-content">
+      <!-- Will be populated by JavaScript -->
+    </div>
+  </div>
+
+  <div class="info-section">
+    <div class="info-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+      </svg>
+      JavaScript Security Analysis
+    </div>
+    <table class="security-table" id="jsAnalysis">
+      <thead>
+        <tr>
+          <th>Issue</th>
+          <th>Severity</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Will be populated by JavaScript -->
+      </tbody>
+    </table>
+  </div>
+
   <div class="info-section">
     <div class="info-title">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -46,42 +247,22 @@
         <line x1="12" y1="16" x2="12" y2="12"></line>
         <line x1="12" y1="8" x2="12" y2="8"></line>
       </svg>
-      Domain Information
+      Input Field Analysis
     </div>
-    <div class="label">URL</div>
-    <div class="info-content" id="url">Loading...</div>
+    <table class="security-table" id="inputAnalysis">
+      <thead>
+        <tr>
+          <th>Field Type</th>
+          <th>Security Issues</th>
+          <th>Recommendations</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Will be populated by JavaScript -->
+      </tbody>
+    </table>
   </div>
-
-  <div class="info-section">
-    <div class="info-title">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
-        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-      </svg>
-      DNS Records
-    </div>
-    
-    <div class="label">IPv4 (A Records)</div>
-    <div class="info-content" id="ipv4">Loading...</div>
-    
-    <div class="label" style="margin-top: 10px;">IPv6 (AAAA Records)</div>
-    <div class="info-content" id="ipv6">Loading...</div>
-  </div>
-
-  <div class="info-section">
-    <div class="info-title">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-        <polyline points="22,6 12,13 2,6"></polyline>
-      </svg>
-      Name Servers & Mail
-    </div>
-    
-    <div class="label">NS Records</div>
-    <div class="info-content" id="ns">Loading...</div>
-    
-    <div class="label" style="margin-top: 10px;">MX Records</div>
-    <div class="info-content" id="mx">Loading...</div>
-  </div>
+  <script src="popup.js"></script>
 </body>
+
 </html>

@@ -1,10 +1,19 @@
 {
   "manifest_version": 3,
-  "name": "eXMM",
+  "name": "ExMM",
   "version": "1.0",
   "description": "Exploit Mitigation Monitor",
-  "permissions": ["storage", "activeTab", "scripting"],
-  "host_permissions": ["https://dns.google/*"],
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "webRequest",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "https://dns.google/*",
+    "<all_urls>"
+  ],
   "action": {
     "default_popup": "main.html",
     "default_icon": {
