@@ -5,16 +5,23 @@ export function initializeTab5() {
     const downloadBtn = document.getElementById('downloadBtn');
     const urlFilter = document.getElementById('urlFilter');
     const urlDisplay = document.getElementById('urlDisplay');
+    const currentWebsiteElement = document.getElementById('currentWebsite');
 
     if (!urlCountElement) return; // Not on tab5
 
-    // Get initial auto parse state
-    chrome.storage.local.get(['endpoints'], (result) => {
-        if (result.endpoints) {
-            urlCountElement.textContent = result.endpoints.length;
-            displayUrls(result.endpoints);
-        }
-    });
+    function updateCurrentWebsite() {
+        chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+            const activeTab = tabs[0];
+            if (activeTab && activeTab.url) {
+                try {
+                    const url = new URL(activeTab.url);
+                    currentWebsiteElement.textContent = url.hostname;
+                } catch (e) {
+                    currentWebsiteElement.textContent = '-';
+                }
+            }
+        });
+    }
 
     function displayUrls(endpoints) {
         if (!endpoints || !endpoints.length) {
@@ -72,6 +79,32 @@ export function initializeTab5() {
             }
         });
     }
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            handleReparse();
+            updateCurrentWebsite();
+        }
+    });
+
+    // Add listener for tab changes
+    chrome.tabs.onActivated.addListener(() => {
+        updateCurrentWebsite();
+    });
+
+    // Add listener for URL changes in the current tab
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+        if (changeInfo.url) {
+            updateCurrentWebsite();
+        }
+    });
+
+    // Get initial auto parse state
+    chrome.storage.local.get(['endpoints'], (result) => {
+        if (result.endpoints) {
+            urlCountElement.textContent = result.endpoints.length;
+            displayUrls(result.endpoints);
+        }
+    });
 
     panelBtn.addEventListener('click', function() {
         // Open panel.html in a new window
@@ -102,4 +135,7 @@ export function initializeTab5() {
 
     // Initial parse when tab5 is loaded
     handleReparse();
+
+    // Call updateCurrentWebsite when the tab is initialized
+    updateCurrentWebsite();
 }

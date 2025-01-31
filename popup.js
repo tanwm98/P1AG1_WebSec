@@ -7,11 +7,20 @@ const tabContent = document.getElementById('tab-content');
 
 // Initialize main page on load
 document.addEventListener('DOMContentLoaded', function() {
+    // Trigger endpoint parsing immediately when popup opens
+    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+        const activeTab = tabs[0];
+        if (activeTab && activeTab.id !== undefined && activeTab.url?.startsWith('http')) {
+            chrome.tabs.sendMessage(activeTab.id, { action: "parseEndpoints" });
+        }
+    });
+
     // Initialize main page if we're on it
     if (document.getElementById('techStackBody')) {
         initializeMainPage();
     }
 });
+
 
 tabs.forEach(tab => {
     tab.addEventListener('click', (e) => {
