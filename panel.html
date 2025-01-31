@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Endpoint Details Panel</title>
+    <link rel="stylesheet" href="style/panel.css" media="all">
+</head>
+<body>
+<div class="container">
+    <input type="text" class="filter-input" id="endpointFilter" placeholder="Filter endpoints...">
+    <button class="export-btn" id="exportBtn">Export JSON</button>
+
+    <div class="endpoints-container" id="endpointsContainer">
+        <div class="endpoint-list" id="endpointList">
+            <!-- Endpoints will be populated here by JavaScript -->
+            <div class="endpoint-group">
+                <div class="endpoint-line">
+                    <span class="endpoint-url">chrome-extension://...</span>
+                    <span class="endpoint-actions">
+                    <button class="action-btn">⟲</button>
+                    <button class="action-btn">⦾</button>
+                </span>
+                </div>
+                <div class="endpoint-detail">N/A</div>
+                <div class="endpoint-detail">N/A</div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="script/panel.js"></script>
+</body>
+</html>

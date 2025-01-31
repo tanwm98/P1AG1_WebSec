@@ -1,0 +1,81 @@
+body {
+    background-color: #1a1a1a;
+    color: white;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    min-width: 800px;
+}
+
+.container {
+    position: relative;
+}
+
+.filter-input {
+    width: calc(100% - 120px); /* Account for Export button */
+    background: #1e2638;
+    border: none;
+    padding: 8px 12px;
+    color: white;
+    margin-bottom: 20px;
+}
+
+.export-btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+    background: #f4511e;
+    border: none;
+    padding: 8px 16px;
+    color: white;
+    cursor: pointer;
+}
+
+.count {
+    color: #f4511e;
+}
+
+.endpoints-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.endpoint-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 2px;
+}
+.endpoint-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: monospace;
+    padding: 4px 0;
+}
+
+.endpoint-metadata {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    color: #808080;
+}
+
+.endpoint-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.action-btn {
+    background: none;
+    border: none;
+    color: #808080;
+    cursor: pointer;
+    font-family: monospace;
+    padding: 0 4px;
+    font-size: 16px;
+}
+
+/* Remove the separate N/A rows since they're now inline */
+.endpoint-detail {
+    display: none;
+}
