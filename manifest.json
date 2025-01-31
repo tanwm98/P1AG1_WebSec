@@ -12,6 +12,11 @@
     "webRequest",
     "webNavigation"
   ],
+  "icons": {
+    "16": "media/icon16.png",
+    "48": "media/icon48.png",
+    "128": "media/icon128.png"
+  },
   "host_permissions": [
     "https://dns.google/*",
     "<all_urls>"
@@ -29,12 +34,7 @@
     "matches": ["<all_urls>"]
   }],
   "action": {
-    "default_popup": "main.html",
-    "default_icon": {
-      "16": "media/icon16.png",
-      "48": "media/icon48.png",
-      "128": "media/icon128.png"
-    }
+    "default_popup": "main.html"
   },
   "content_scripts": [
     {
