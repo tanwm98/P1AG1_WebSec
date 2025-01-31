@@ -1,19 +1,5 @@
 let isAutoParserEnabled = false;
-function parseEndpointsForCurrentTab() {
-    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-        const activeTab = tabs[0];
-        if (activeTab && activeTab.id !== undefined && activeTab.url?.startsWith('http')) {
-            chrome.tabs.sendMessage(activeTab.id, { action: "parseEndpoints" });
-        }
-    });
-}
 
-// Add this listener for when the extension icon is clicked
-chrome.action.onClicked.addListener((tab) => {
-    if (tab.url?.startsWith('http')) {
-        parseEndpointsForCurrentTab();
-    }
-});
 // Load initial state
 chrome.storage.local.get(['autoParseEnabled'], (result) => {
     isAutoParserEnabled = result.autoParseEnabled || false;
@@ -22,9 +8,15 @@ chrome.storage.local.get(['autoParseEnabled'], (result) => {
 // Listen for messages from content script and popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'endpointsUpdated') {
-        // Forward messages to the popup if it's open
-        chrome.runtime.sendMessage(request);
+        try {
+            chrome.runtime.sendMessage(request);
+            sendResponse({ success: true });
+        } catch (error) {
+            console.error('Error forwarding message:', error);
+            sendResponse({ success: false, error: error.message });
+        }
     }
+    return true; // Keep message channel open for async response
 });
 
 // Handle tab updates
@@ -35,5 +27,12 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
                 chrome.tabs.sendMessage(tabId, { action: "parseEndpoints" });
             }
         });
+    }
+});
+
+// Add icon click handler
+chrome.action.onClicked.addListener((tab) => {
+    if (tab.url?.startsWith('http')) {
+        chrome.tabs.sendMessage(tab.id, { action: "parseEndpoints" });
     }
 });

@@ -1,141 +1,137 @@
-// Function to initialize tab5 functionality
 export function initializeTab5() {
-    const urlCountElement = document.getElementById('urlCount');
-    const panelBtn = document.getElementById('panelBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const urlFilter = document.getElementById('urlFilter');
-    const urlDisplay = document.getElementById('urlDisplay');
-    const currentWebsiteElement = document.getElementById('currentWebsite');
+    const elements = {
+        urlCount: document.getElementById('urlCount'),
+        autoParseToggle: document.getElementById('autoParseToggle'),
+        toggleStatus: document.getElementById('toggleStatus'),
+        panelBtn: document.getElementById('panelBtn'),
+        reparseBtn: document.getElementById('reparseBtn'),
+        downloadBtn: document.getElementById('downloadBtn'),
+        urlFilter: document.getElementById('urlFilter'),
+        urlDisplay: document.getElementById('urlDisplay')
+    };
 
-    if (!urlCountElement) return; // Not on tab5
+    if (!elements.urlCount) return; // Not on tab5
 
-    function updateCurrentWebsite() {
-        chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-            const activeTab = tabs[0];
-            if (activeTab && activeTab.url) {
-                try {
-                    const url = new URL(activeTab.url);
-                    currentWebsiteElement.textContent = url.hostname;
-                } catch (e) {
-                    currentWebsiteElement.textContent = '-';
-                }
-            }
-        });
-    }
+    initializeAutoParseState(elements);
+    setupEventListeners(elements);
+    setupMessageListener(elements);
+    handleInitialParse();
+}
 
-    function displayUrls(endpoints) {
-        if (!endpoints || !endpoints.length) {
-            urlDisplay.innerHTML = '<p class="info-text">No URLs captured</p>';
-            return;
+function initializeAutoParseState(elements) {
+    chrome.storage.local.get(['autoParseEnabled', 'endpoints'], (result) => {
+        if (result.autoParseEnabled !== undefined) {
+            elements.autoParseToggle.checked = result.autoParseEnabled;
+            updateToggleStatus(elements.toggleStatus, result.autoParseEnabled);
         }
-
-        const html = endpoints.map(endpoint => `
-            <div class="url-item">
-                ${endpoint.url}
-                <span style="color: #a0aec0; font-size: 0.8em;">[${endpoint.source || 'link'}]</span>
-            </div>
-        `).join('');
-
-        urlDisplay.innerHTML = html;
-    }
-
-    function filterURLs(searchTerm) {
-        chrome.storage.local.get(['endpoints'], (result) => {
-            if (!result.endpoints) return;
-
-            const filtered = searchTerm
-                ? result.endpoints.filter(endpoint =>
-                    endpoint.url.toLowerCase().includes(searchTerm.toLowerCase()))
-                : result.endpoints;
-
-            displayUrls(filtered);
-        });
-    }
-
-    function downloadURLsAsTxt() {
-        chrome.storage.local.get(['endpoints'], (result) => {
-            const urls = result.endpoints?.map(endpoint => endpoint.url) || [];
-            const blob = new Blob([urls.join('\n')], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'urls-unmodified.txt';
-            a.click();
-            URL.revokeObjectURL(url);
-        });
-    }
-
-    // Function to handle reparse
-    function handleReparse() {
-        chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-            const activeTab = tabs[0];
-            if (activeTab && activeTab.id !== undefined) {
-                chrome.tabs.sendMessage(activeTab.id, { action: "parseEndpoints" }, response => {
-                    if (chrome.runtime.lastError) {
-                        console.error("Error:", chrome.runtime.lastError);
-                        return;
-                    }
-                });
-            }
-        });
-    }
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-            handleReparse();
-            updateCurrentWebsite();
-        }
-    });
-
-    // Add listener for tab changes
-    chrome.tabs.onActivated.addListener(() => {
-        updateCurrentWebsite();
-    });
-
-    // Add listener for URL changes in the current tab
-    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-        if (changeInfo.url) {
-            updateCurrentWebsite();
-        }
-    });
-
-    // Get initial auto parse state
-    chrome.storage.local.get(['endpoints'], (result) => {
         if (result.endpoints) {
-            urlCountElement.textContent = result.endpoints.length;
-            displayUrls(result.endpoints);
+            updateUrlCount(elements.urlCount, result.endpoints.length);
+            displayUrls(elements.urlDisplay, result.endpoints);
         }
     });
+}
 
-    panelBtn.addEventListener('click', function() {
-        // Open panel.html in a new window
-        chrome.tabs.create({
-            url: chrome.runtime.getURL('panel.html')
-        });
+function setupEventListeners(elements) {
+    elements.autoParseToggle.addEventListener('change', function() {
+        const isEnabled = this.checked;
+        chrome.storage.local.set({ autoParseEnabled: isEnabled });
+        updateToggleStatus(elements.toggleStatus, isEnabled);
+        if (isEnabled) handleReparse();
     });
 
-    downloadBtn.addEventListener('click', downloadURLsAsTxt);
+    elements.panelBtn.addEventListener('click', () => clearEndpoints(elements));
+    elements.reparseBtn.addEventListener('click', handleReparse);
+    elements.downloadBtn.addEventListener('click', downloadURLsAsTxt);
 
+    setupUrlFilter(elements.urlFilter, elements.urlDisplay);
+}
+
+function setupUrlFilter(filterElement, displayElement) {
     let filterTimeout;
-    urlFilter.addEventListener('input', (e) => {
+    filterElement.addEventListener('input', (e) => {
         clearTimeout(filterTimeout);
         filterTimeout = setTimeout(() => {
-            filterURLs(e.target.value);
+            filterURLs(e.target.value, displayElement);
         }, 300);
     });
+}
 
-    // Listen for updates from content script
+function setupMessageListener(elements) {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (request.action === 'endpointsUpdated') {
-            urlCountElement.textContent = request.count;
+            updateUrlCount(elements.urlCount, request.count);
             chrome.storage.local.get(['endpoints'], (result) => {
-                displayUrls(result.endpoints);
+                displayUrls(elements.urlDisplay, result.endpoints);
             });
         }
     });
+}
 
-    // Initial parse when tab5 is loaded
+function updateToggleStatus(toggleStatus, isEnabled) {
+    toggleStatus.textContent = isEnabled ? 'ON' : 'OFF';
+    toggleStatus.style.color = isEnabled ? '#ed8936' : '#a0aec0';
+}
+
+function updateUrlCount(urlCountElement, count) {
+    urlCountElement.textContent = count;
+}
+
+function displayUrls(displayElement, endpoints) {
+    if (!endpoints?.length) {
+        displayElement.innerHTML = '<p class="info-text">No URLs captured</p>';
+        return;
+    }
+
+    displayElement.innerHTML = endpoints.map(endpoint => `
+        <div class="url-item">
+            ${endpoint.url}
+            <span style="color: #a0aec0; font-size: 0.8em;">[${endpoint.source || 'link'}]</span>
+        </div>
+    `).join('');
+}
+
+function filterURLs(searchTerm, displayElement) {
+    chrome.storage.local.get(['endpoints'], (result) => {
+        if (!result.endpoints) return;
+
+        const filtered = searchTerm
+            ? result.endpoints.filter(endpoint =>
+                endpoint.url.toLowerCase().includes(searchTerm.toLowerCase()))
+            : result.endpoints;
+
+        displayUrls(displayElement, filtered);
+    });
+}
+
+function clearEndpoints(elements) {
+    chrome.storage.local.set({ endpoints: [] });
+    updateUrlCount(elements.urlCount, 0);
+    displayUrls(elements.urlDisplay, []);
+}
+
+function handleReparse() {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const activeTab = tabs[0];
+        if (activeTab?.id !== undefined) {
+            chrome.tabs.sendMessage(activeTab.id, { action: "parseEndpoints" });
+        }
+    });
+}
+
+function downloadURLsAsTxt() {
+    chrome.storage.local.get(['endpoints'], (result) => {
+        const urls = result.endpoints?.map(endpoint => endpoint.url) || [];
+        const blob = new Blob([urls.join('\n')], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'urls-unmodified.txt';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+}
+
+function handleInitialParse() {
+    // Trigger initial parse when tab is loaded
     handleReparse();
-
-    // Call updateCurrentWebsite when the tab is initialized
-    updateCurrentWebsite();
 }

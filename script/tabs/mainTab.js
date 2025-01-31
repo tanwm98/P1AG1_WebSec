@@ -1,4 +1,3 @@
-// Initialize main page data
 export function initializeMainPage() {
     const techStackData = [
         { name: 'Google Font API', version: '', cve: true },
@@ -22,48 +21,39 @@ export function initializeMainPage() {
         { type: 'sessionStorage', action: 'View' }
     ];
 
-    // Populate Tech Stack
-    const techStackBody = document.getElementById('techStackBody');
-    if (techStackBody) {
-        techStackBody.innerHTML = techStackData.map(item => `
-            <tr>
-                <td>${item.name}</td>
-                <td>${item.version}</td>
-                <td>${item.cve ? '<a href="#" class="view-link">View</a>' : ''}</td>
-            </tr>
-        `).join('');
-    }
+    populateTable('techStackBody', techStackData, row => `
+        <tr>
+            <td>${row.name}</td>
+            <td>${row.version}</td>
+            <td>${row.cve ? '<a href="#" class="view-link">View</a>' : ''}</td>
+        </tr>
+    `);
 
-    // Populate WAF/CDN
-    const wafCdnBody = document.getElementById('wafCdnBody');
-    if (wafCdnBody) {
-        wafCdnBody.innerHTML = wafCdnData.map(item => `
-            <tr>
-                <td>${item.name}</td>
-                <td>${item.status}</td>
-            </tr>
-        `).join('');
-    }
+    populateTable('wafCdnBody', wafCdnData, row => `
+        <tr>
+            <td>${row.name}</td>
+            <td>${row.status}</td>
+        </tr>
+    `);
 
-    // Populate Headers
-    const headersBody = document.getElementById('headersBody');
-    if (headersBody) {
-        headersBody.innerHTML = headersData.map(item => `
-            <tr>
-                <td>${item.name}</td>
-                <td>${item.description}</td>
-            </tr>
-        `).join('');
-    }
+    populateTable('headersBody', headersData, row => `
+        <tr>
+            <td>${row.name}</td>
+            <td>${row.description}</td>
+        </tr>
+    `);
 
-    // Populate Storage
-    const storageBody = document.getElementById('storageBody');
-    if (storageBody) {
-        storageBody.innerHTML = storageData.map(item => `
-            <tr>
-                <td>${item.type}</td>
-                <td><a href="#" class="view-link">${item.action}</a></td>
-            </tr>
-        `).join('');
+    populateTable('storageBody', storageData, row => `
+        <tr>
+            <td>${row.type}</td>
+            <td><a href="#" class="view-link">${row.action}</a></td>
+        </tr>
+    `);
+}
+
+function populateTable(tableId, data, rowTemplate) {
+    const tableBody = document.getElementById(tableId);
+    if (tableBody) {
+        tableBody.innerHTML = data.map(rowTemplate).join('');
     }
 }

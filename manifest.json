@@ -16,7 +16,18 @@
     "https://dns.google/*",
     "<all_urls>"
   ],
-
+  "web_accessible_resources": [{
+    "resources": [
+      "tab1.html",
+      "tab2.html",
+      "tab3.html",
+      "tab4.html",
+      "tab5.html",
+      "script/*",
+      "style/*"
+    ],
+    "matches": ["<all_urls>"]
+  }],
   "action": {
     "default_popup": "main.html",
     "default_icon": {
