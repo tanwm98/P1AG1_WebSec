@@ -3,7 +3,8 @@ const libraryPatterns = [
   { name: 'jQuery', regex: /jquery(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
   { name: 'Bootstrap', regex: /bootstrap(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
   { name: 'AngularJS', regex: /angular.js(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
-  { name: 'React', regex: /react(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+  // { name: 'React', regex: /react(?:[-./@])?(\d+(?:\.\d+)?(?:\.\d+)?)?/gi },
+  { name: 'React-Dom', regex: /react-dom(?:[-./@])?(\d+(?:\.\d+)?(?:\.\d+)?)/gi },
   { name: 'Vue.js', regex: /vue(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
   { name: 'Lodash', regex: /lodash(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
   { name: 'Moment.js', regex: /moment(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
@@ -57,7 +58,7 @@ function initializeStaticAnalysis() {
       );
     });
   });
-
+  
   function addRowToTable({ risk, library, version, thirdParty, type, source, cveData }) {
     
     // Skip empty library names
@@ -67,19 +68,16 @@ function initializeStaticAnalysis() {
 
     const row = document.createElement('tr');
 
-    // Highlight rows with security risks
-    // if (risk !== 'None') {
-    //     row.style.backgroundColor = '#ffcccc';
-    // }
-
     let cveText = "No CVEs found";
     let severityText = "N/A";
     let scoreText = "N/A";
+    let descriptionText = "No description available";
 
     if (cveData.length > 0) {
         cveText = cveData.map(cve => `${cve.id}`).join("<br>");
         severityText = cveData.map(cve => `${cve.severity}`).join("<br>");
         scoreText = cveData.map(cve => `${cve.score}`).join("<br>");
+        descriptionText = cveData.map(cve => `${cve.description}`).join("<br><br>");
     }
 
     row.innerHTML = `
@@ -87,6 +85,7 @@ function initializeStaticAnalysis() {
       <td>${cveText}</td>  
       <td>${severityText}</td>  
       <td>${scoreText}</td>  
+      <!-- <td>${descriptionText}</td> -->  
       <td>${thirdParty ? 'Yes' : 'No'}</td>
       <td>${type}</td>
       <td>${source}</td>
@@ -94,6 +93,7 @@ function initializeStaticAnalysis() {
 
     resultsTable.appendChild(row);
 }
+
 
 
   async function analyzeDependency(url, type, pageDomain) {
@@ -126,28 +126,31 @@ function initializeStaticAnalysis() {
   }
 
   function detectLibrary(url) {
-    // Clear the list before each detection
-    detectedLibraries = [];
+    let detectedLibraries = [];
 
     for (let pattern of libraryPatterns) {
         let matches = [...url.matchAll(pattern.regex)];
 
         if (matches.length > 0) {
-            let lastValidVersion = "Unknown";
+            let lastValidVersion = "*";
 
             for (let match of matches) {
                 if (match[1]) {
-                    lastValidVersion = match[1];
-                    console.log(lastValidVersion)
+                    lastValidVersion = match[1]; // Now correctly extracts versions like "16"
                 }
             }
 
-            detectedLibraries.push({ name: pattern.name, version: lastValidVersion });
+            // Ensure no "v*" placeholder in the output
+            if (lastValidVersion !== "Unknown") {
+                detectedLibraries.push({ name: pattern.name, version: `${lastValidVersion}` });
+            } else {
+                detectedLibraries.push({ name: pattern.name, version: "*" });
+            }
         }
     }
+
     return detectedLibraries;
-    
-  }
+}
 
   async function fetchFilteredCveData(library, version) {
     // Normalize library names for correct CPE format
@@ -155,8 +158,9 @@ function initializeStaticAnalysis() {
         "jQuery": "jquery:jquery",
         "Bootstrap": "getbootstrap:bootstrap",
         "AngularJS": "angularjs:angular.js",
-        "React": "facebook:react",
-        "Vue.js": "vuejs:vue",
+        // "React": "facebook:react",
+        "React-Dom": "facebook:react",
+        "Vue.js": "vuetifyjs:vuetify",
         "Lodash": "lodash:lodash",
         "Moment.js": "momentjs:moment.js",
         "GSAP": "greensock:gsap",
@@ -164,6 +168,11 @@ function initializeStaticAnalysis() {
         "Chart.js": "chartjs:chart.js",
         "Tailwind CSS": "tailwindcss:tailwind.css"
     };
+
+    // Ensure React-Dom version is always in x.0.0 format
+    if (library === "React-Dom" && /^\d+$/.test(version)) {
+      version = `${version}.0.0`;
+  }
 
     // Use the correct CPE format if known
     const vendorProduct = cpeMapping[library] || library.toLowerCase();
