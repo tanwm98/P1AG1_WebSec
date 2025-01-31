@@ -5,43 +5,29 @@
     <link rel="stylesheet" href="style/tab5.css" media="all">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h3>Currently analyzing: <span id="currentWebsite">-</span></h3>
-            <h2>URLs (<span id="urlCount">0</span>)</h2>
-        </div>
-
-        <div class="controls">
-            <div class="toggle-container">
-                <span>Auto Parse:</span>
-                <label class="switch">
-                    <input type="checkbox" id="autoParseToggle">
-                    <span class="slider round"></span>
-                </label>
-                <span id="toggleStatus" class="toggle-status">OFF</span>
-            </div>
-
-            <button id="reparseBtn" class="action-button">
-                🔄 Reparse
-            </button>
-
-            <button class="action-button" id="panelBtn">
-                🗑️ Clear
-            </button>
-        </div>
-
-        <div class="filter-container">
-            <input type="text" id="urlFilter" class="filter-input" placeholder="Filter URLs...">
-            <p class="info-text">Filter by domain, path, or parameters</p>
-        </div>
-
-        <button id="downloadBtn" class="download-btn">
-            📥 Download URLs as .txt
-        </button>
-
-        <div id="urlDisplay" class="url-display">
-            <!-- URLs will be populated here -->
-        </div>
+<div class="container">
+    <div class="header">
+        <h3>Currently analyzing: <span id="currentWebsite">-</span></h3>
+        <h2>URLs (<span id="urlCount">0</span>)</h2>
     </div>
+
+    <div class="button-grid">
+        <button class="action-button" id="panelBtn">
+            📊
+            <span>Details Panel</span>
+        </button>
+    </div>
+
+    <div class="filter-container">
+        <input type="text" id="urlFilter" class="filter-input" placeholder="Filter URLs...">
+        <p class="info-text">Filter by domain, path, or parameters</p>\
+    </div>
+
+    <button id="downloadBtn" class="download-btn">
+        📥 Download URLs as .txt
+    </button>
+
+    <div id="urlDisplay" class="url-display"></div>
+</div>
 </body>
 </html>
