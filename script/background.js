@@ -1,50 +1,72 @@
 // Listen for messages from content script and popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'endpointsUpdated') {
-        try {
-            chrome.runtime.sendMessage(request);
-            sendResponse({ success: true });
-        } catch (error) {
-            console.error('Error forwarding message:', error);
-            sendResponse({ success: false, error: error.message });
-        }
-    } else if (request.type === 'FETCH_URL') {
-        console.log('Background script fetching:', request.url);
-        fetch(request.url)
-            .then(async response => {
-                const text = await response.text();
-                console.log('Fetch succeeded, text length:', text.length);
-                sendResponse({ ok: true, text });
-            })
-            .catch(error => {
-                console.error('Background fetch error:', error);
-                sendResponse({ ok: false, error: error.message });
-            });
-        return true; // Keep message channel open
+  if (request.action === 'endpointsUpdated') {
+    try {
+      chrome.runtime.sendMessage(request);
+      sendResponse({ success: true });
+    } catch (error) {
+      console.error('Error forwarding message:', error);
+      sendResponse({ success: false, error: error.message });
     }
-    // No final return needed here.
-});
+    return true;
+  }
 
-// Handle tab updates
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.status === 'complete' && tab.url?.startsWith('http')) {
-        chrome.storage.local.get(['autoParseEnabled'], (result) => {
-            if (result.autoParseEnabled) {
-                chrome.tabs.sendMessage(tabId, { action: "parseEndpoints" });
-            }
+  else if (request.type === 'FETCH_URL') {
+    console.log('Background script fetching:', request.url);
+    fetch(request.url)
+      .then(async response => {
+        const text = await response.text();
+        console.log('Fetch succeeded, text length:', text.length);
+        sendResponse({ ok: true, text });
+      })
+      .catch(error => {
+        console.error('Background fetch error:', error);
+        sendResponse({ ok: false, error: error.message });
+      });
+    return true;  // Indicate we will send response asynchronously
+  }
+
+  else if (request.action === 'sendRequest') {
+    console.log('Sending request:', request);
+
+    const options = {
+      method: request.method || 'GET',
+      headers: request.customRequest?.headers || {}
+    };
+
+    if (request.method === 'POST' && request.customRequest?.body) {
+      options.body = request.customRequest.body;
+    }
+
+    fetch(request.endpoint.url, options)
+      .then(async response => {
+        const text = await response.text();
+        sendResponse({
+          success: true,
+          url: request.endpoint.url,
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries()),
+          body: text
         });
-    }
+      })
+      .catch(error => {
+        console.error('Request error:', error);
+        sendResponse({
+          success: false,
+          url: request.endpoint.url,
+          status: 0,
+          statusText: 'Error',
+          headers: { 'Error': error.toString() },
+          body: 'Failed to fetch'
+        });
+      });
+    return true;
+  }
 });
-
 // Add icon click handler
 chrome.action.onClicked.addListener((tab) => {
     if (tab.url?.startsWith('http')) {
         chrome.tabs.sendMessage(tab.id, { action: "parseEndpoints" });
     }
-});
-
-document.addEventListener('click', (e) => {
-  if (e.target.classList.contains('code-modal')) {
-    e.target.style.display = 'none';
-  }
 });
