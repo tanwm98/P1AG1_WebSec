@@ -63,6 +63,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
     return true;
   }
+    else if (request.action === "getHeaders") {
+        chrome.webRequest.onHeadersReceived.addListener(
+            (details) => {
+                sendResponse({ headers: details.responseHeaders });
+            },
+            { urls: ["<all_urls>"], types: ["main_frame"] },
+            ["responseHeaders"]
+        );
+        return true;
+    }
 });
 // Add icon click handler
 chrome.action.onClicked.addListener((tab) => {

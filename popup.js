@@ -1,144 +1,122 @@
+// popup.js
+
 const tabs = document.querySelectorAll('.tab-link');
 const tabContent = document.getElementById('tab-content');
 
-// Initialize main page data
-function initializeMainPage() {
-    const techStackData = [
-        { name: 'Google Font API', version: '', cve: true },
-        { name: 'MooTools', version: '1.6.0', cve: true },
-        { name: 'XenForo', version: '', cve: true },
-        { name: 'MySQL', version: '', cve: true }
-    ];
-
-    const wafCdnData = [
-        { name: 'FortiWeb (Fortinet)', status: 'Detected' },
-        { name: 'Cloudfront (Amazon)', status: 'Detected' }
-    ];
-
-    const headersData = [
-        { name: 'X-XSS-Protection', description: 'X-XSS-Protection header is deprecated' }
-    ];
-
-    const storageData = [
-        { type: 'Cookie', action: 'View' },
-        { type: 'localStorage', action: 'View' },
-        { type: 'sessionStorage', action: 'View' }
-    ];
-
-    // Populate Tech Stack
-    const techStackBody = document.getElementById('techStackBody');
-    if (techStackBody) {
-        techStackBody.innerHTML = techStackData.map(item => `
-            <tr>
-                <td>${item.name}</td>
-                <td>${item.version}</td>
-                <td>${item.cve ? '<a href="#" class="view-link">View</a>' : ''}</td>
-            </tr>
-        `).join('');
-    }
-
-    // Populate WAF/CDN
-    const wafCdnBody = document.getElementById('wafCdnBody');
-    if (wafCdnBody) {
-        wafCdnBody.innerHTML = wafCdnData.map(item => `
-            <tr>
-                <td>${item.name}</td>
-                <td>${item.status}</td>
-            </tr>
-        `).join('');
-    }
-
-    // Populate Headers
-    const headersBody = document.getElementById('headersBody');
-    if (headersBody) {
-        headersBody.innerHTML = headersData.map(item => `
-            <tr>
-                <td>${item.name}</td>
-                <td>${item.description}</td>
-            </tr>
-        `).join('');
-    }
-
-    // Populate Storage
-    const storageBody = document.getElementById('storageBody');
-    if (storageBody) {
-        storageBody.innerHTML = storageData.map(item => `
-            <tr>
-                <td>${item.type}</td>
-                <td><a href="#" class="view-link">${item.action}</a></td>
-            </tr>
-        `).join('');
-    }
-}
-
-// Initialize main page on load
+// On DOMContentLoaded, trigger endpoint parsing
 document.addEventListener('DOMContentLoaded', function() {
-    // Trigger endpoint parsing immediately when popup opens
-    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-        const activeTab = tabs[0];
-        if (activeTab && activeTab.id !== undefined && activeTab.url?.startsWith('http')) {
-            chrome.tabs.sendMessage(activeTab.id, { action: "parseEndpoints" });
-        }
+    console.log('Popup DOMContentLoaded fired');
+    // Initialize the tech stack detection
+    import('./script/tabs/mainTab.js').then(module => {
+        console.log('mainTab.js loaded successfully');
+        module.initializeMainPage();
+    }).catch(error => {
+        console.error('Error loading mainTab.js:', error);
     });
-    
-    // Initialize main page if we're on it
-    if (document.getElementById('techStackBody')) {
-        initializeMainPage();
+
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const activeTab = tabs[0];
+    if (activeTab && activeTab.id !== undefined && activeTab.url?.startsWith('http')) {
+      chrome.tabs.sendMessage(activeTab.id, { action: "parseEndpoints" });
     }
+  });
 });
 
-// Handle tab switching
+// Tab switching event listeners
 tabs.forEach(tab => {
-    tab.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const file = tab.getAttribute('data-file');
-        console.log('Loading tab:', file); // Debug log
-
-        // Remove active class from all tabs
-        tabs.forEach(t => t.classList.remove('active'));
-
-        // Add active class to clicked tab
-        tab.classList.add('active');
-
-        try {
-            // Get the full URL for the HTML file
-            const tabUrl = chrome.runtime.getURL(file);
-            console.log('Tab URL:', tabUrl); // Debug log
-
-            // Fetch the HTML content
-            const response = await fetch(tabUrl);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.text();
-            
-            // Update the content
-            tabContent.innerHTML = data;
-
-            // Initialize tab functionality
-            if (file === 'tab1.html') {
-                try {
-                    // Debug log before import
-                    console.log('Importing tab1.js module...');
-                    const tab1Module = await import('./script/tabs/tab1.js');
-                    console.log('Import successful, initializing tab1...');
-                    await tab1Module.initializeTab1();
-                } catch (importError) {
-                    console.error('Error importing tab1 module:', importError);
-                    throw importError;
-                }
-            } else if (file === 'tab5.html') {
-                try {
-                    const tab5Module = await import('./script/tabs/tab5.js');
-                    await tab5Module.initializeTab5();
-                } catch (importError) {
-                    console.error('Error importing tab5 module:', importError);
-                    throw importError;
-                }
-            }
-        } catch (error) {
-            console.error('Error loading tab content:', error);
-            tabContent.innerHTML = `<p>Error loading content: ${error.message}</p>`;
-        }
-    });
+  tab.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const file = tab.getAttribute('data-file');
+    console.log('Loading tab:', file);
+    // Remove active class from all tabs
+    tabs.forEach(t => t.classList.remove('active'));
+    // Add active class to clicked tab
+    tab.classList.add('active');
+    try {
+      const tabUrl = chrome.runtime.getURL(file);
+      console.log('Tab URL:', tabUrl);
+      const response = await fetch(tabUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.text();
+      tabContent.innerHTML = data;
+      if (file === 'tab1.html') {
+        console.log('Importing tab1.js module...');
+        const tab1Module = await import('./script/tabs/tab1.js');
+        console.log('Import successful, initializing tab1...');
+        await tab1Module.initializeTab1();
+      } else if (file === 'tab5.html') {
+        const tab5Module = await import('./script/tabs/tab5.js');
+        await tab5Module.initializeTab5();
+      }
+    } catch (error) {
+      console.error('Error loading tab content:', error);
+      tabContent.innerHTML = `<p>Error loading content: ${error.message}</p>`;
+    }
+  });
 });
+
+// Listen for clicks on any "view-link"
+document.addEventListener('click', (event) => {
+  if (event.target.classList.contains('view-link')) {
+    const row = event.target.closest('tr');
+    if (row && row.cells[0] && row.cells[0].innerText.trim() === 'Cookie') {
+      event.preventDefault();
+      showCookieModal();
+    }
+    // Additional view-link handling (e.g., for CVE details) can be added here.
+  }
+});
+
+// Function to show a modal with cookie details
+function showCookieModal() {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const activeTab = tabs[0];
+    if (activeTab && activeTab.url) {
+      chrome.cookies.getAll({ url: activeTab.url }, (cookies) => {
+        let cookieHTML = `<h2>Cookies for ${activeTab.url}</h2>
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Value</th>
+                <th>HTTPOnly</th>
+              </tr>
+            </thead>
+            <tbody>`;
+        cookies.forEach(cookie => {
+          cookieHTML += `<tr>
+            <td>${cookie.name}</td>
+            <td>${cookie.value}</td>
+            <td>${cookie.httpOnly ? 'True' : 'False'}</td>
+          </tr>`;
+        });
+        cookieHTML += `</tbody></table>
+          <button id="closeCookieModal" style="margin-top: 10px;">Close</button>`;
+        
+        // Create the modal if it doesn't exist
+        let modal = document.getElementById('cookieModal');
+        if (!modal) {
+          modal = document.createElement('div');
+          modal.id = 'cookieModal';
+          modal.style.position = 'fixed';
+          modal.style.top = '0';
+          modal.style.left = '0';
+          modal.style.width = '100%';
+          modal.style.height = '100%';
+          modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+          modal.style.zIndex = '1000';
+          modal.innerHTML = `<div id="cookieModalContent" style="background: white; color: black; margin: 10% auto; padding: 20px; width: 80%; max-width: 600px; border-radius: 4px;"></div>`;
+          document.body.appendChild(modal);
+        }
+        const modalContent = document.getElementById('cookieModalContent');
+        modalContent.innerHTML = cookieHTML;
+        modal.style.display = 'block';
+        document.getElementById('closeCookieModal').addEventListener('click', () => {
+          modal.style.display = 'none';
+        });
+      });
+    }
+  });
+}
