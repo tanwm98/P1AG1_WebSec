@@ -144,7 +144,7 @@ function initializeStaticAnalysis() {
 
             for (let match of matches) {
                 if (match[1]) {
-                    lastValidVersion = match[1]; // Now correctly extracts versions like "16"
+                    lastValidVersion = match[1]; 
                 }
             }
 
@@ -213,7 +213,7 @@ function initializeStaticAnalysis() {
         if (data && data.vulnerabilities) {
             const filteredCves = data.vulnerabilities.map(vuln => ({
                 id: vuln.cve.id,
-                
+
                 severity: vuln.cve.metrics?.cvssMetricV31?.[0]?.cvssData?.baseSeverity || 
                 vuln.cve.metrics?.cvssMetricV30?.[0]?.cvssData?.baseSeverity || 
                 vuln.cve.metrics?.cvssMetricV2?.[0]?.cvssData?.baseSeverity || 
