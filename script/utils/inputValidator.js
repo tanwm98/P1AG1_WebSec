@@ -10,48 +10,125 @@ const testCases = {
     xss: {
         name: 'Cross-Site Scripting (XSS)',
         tests: [
-            { payload: '<script>alert(1)</script>', description: 'Basic XSS' },
-            { payload: '"><script>alert(1)</script>', description: 'Attribute XSS' },
-            { payload: 'javascript:alert(1)', description: 'Protocol XSS' }
+            { payload: '<script>alert(1)</script>', description: 'Basic XSS', type: 'xss' },
+            { payload: '"><script>alert(1)</script>', description: 'Attribute XSS', type: 'xss' },
+            { payload: 'javascript:alert(1)', description: 'Protocol XSS', type: 'xss' }
         ]
     },
     sqli: {
         name: 'SQL Injection',
         tests: [
-            { payload: "' OR '1'='1", description: 'Basic SQLi' },
-            { payload: '" OR "1"="1', description: 'Double Quote SQLi' },
-            { payload: '1; DROP TABLE users--', description: 'Command SQLi' }
+            { payload: "' OR '1'='1", description: 'Basic SQLi', type: 'sqli' },
+            { payload: '" OR "1"="1', description: 'Double Quote SQLi', type: 'sqli' },
+            { payload: '1; DROP TABLE users--', description: 'Command SQLi', type: 'sqli' }
         ]
     },
     special: {
         name: 'Special Characters',
         tests: [
-            { payload: '@#$%^&*()', description: 'Basic Special Chars' },
-            { payload: '§±!@£$%^&*()', description: 'Extended Special Chars' }
+            { payload: '@#$%^&*()', description: 'Basic Special Chars', type: 'special' },
+            { payload: '§±!@£$%^&*()', description: 'Extended Special Chars', type: 'special' }
         ]
     }
 };
 
 async function testInputField(input, test) {
     try {
-        console.log(`Testing field: ${input.name || input.id || 'unnamed'} with payload: ${test.payload}`);
+        console.log(`Testing field: ${input.name || input.id || 'unnamed'}`);
         const originalValue = input.value;
+
+        // Save initial state
+        const initialProperties = {
+            type: input.type,
+            maxLength: input.maxLength,
+            pattern: input.pattern,
+            required: input.required
+        };
+
         input.value = test.payload;
-        
+
+        // Trigger validation events
         input.dispatchEvent(new Event('input', { bubbles: true }));
         input.dispatchEvent(new Event('change', { bubbles: true }));
         input.dispatchEvent(new Event('blur', { bubbles: true }));
-        
+
         await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Get the final value after any client-side sanitization
+        const finalValue = input.value;
         
-        const accepted = input.value === test.payload;
+        // Check if the value was changed by any client-side validation/sanitization
+        const wasValueSanitized = finalValue !== test.payload;
+        
+        // Check HTML5 validation state
+        const isInvalid = !input.validity.valid;
+        
+        // Check for input restrictions
+        const hasRestrictions = input.pattern || 
+                               input.maxLength > 0 || 
+                               ['email', 'number', 'url'].includes(input.type);
+
+        let isVulnerable = false;
+        let additionalInfo = '';
+
+        switch(test.type) {
+            case 'xss':
+                // For XSS, check if script tags survive and aren't escaped
+                isVulnerable = finalValue.includes('<script>') && 
+                              !finalValue.includes('&lt;script&gt;') &&
+                              !wasValueSanitized &&
+                              !isInvalid;
+                additionalInfo = isVulnerable ? 
+                    'Field accepts and preserves unescaped script tags' : 
+                    'Script tags are either escaped or rejected';
+                break;
+
+            case 'sqli':
+                // For SQL injection, check if SQL special chars are preserved
+                isVulnerable = finalValue.includes("'") && 
+                              finalValue.includes("=") &&
+                              !wasValueSanitized &&
+                              !isInvalid;
+                additionalInfo = isVulnerable ? 
+                    'Field accepts SQL control characters without sanitization' : 
+                    'SQL special characters are properly handled';
+                break;
+
+            case 'special':
+                // For special chars, check if they're accepted without validation
+                isVulnerable = !wasValueSanitized && 
+                              !isInvalid && 
+                              !hasRestrictions;
+                additionalInfo = isVulnerable ? 
+                    'Field accepts special characters without validation' : 
+                    'Special characters are properly validated';
+                break;
+        }
+
+        // Restore original value
         input.value = originalValue;
+
+        console.log(`Test result for ${input.name || input.id}: ${isVulnerable ? 'Vulnerable' : 'Safe'}`);
         
-        console.log(`Test result for ${input.name || input.id}: ${accepted ? 'Vulnerable' : 'Safe'}`);
-        return accepted;
+        return {
+            isVulnerable,
+            additionalInfo,
+            validationInfo: {
+                inputType: input.type,
+                hasPattern: !!input.pattern,
+                hasLengthLimit: input.maxLength > 0,
+                wasValueSanitized,
+                triggeredValidation: isInvalid
+            }
+        };
+
     } catch (error) {
         console.error('Error testing input field:', error);
-        return false;
+        return {
+            isVulnerable: false,
+            additionalInfo: 'Error during testing',
+            error: error.message
+        };
     }
 }
 
@@ -100,6 +177,8 @@ async function runTests() {
             results.push(fieldResult);
         }
         
+        console.log('Tests completed, sending results:', results);
+        // Send results message
         chrome.runtime.sendMessage({
             type: 'results',
             results: results
