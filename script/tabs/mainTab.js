@@ -1,5 +1,3 @@
-// script/tabs/mainTab.js
-
 function populateTable(tableId, data, rowTemplate) {
     const tableBody = document.getElementById(tableId);
     if (!tableBody) {
@@ -8,10 +6,21 @@ function populateTable(tableId, data, rowTemplate) {
     }
 
     try {
-        tableBody.innerHTML = data.map(rowTemplate).join('');
+        // Handle empty data case first
+        if (!Array.isArray(data) || data.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="3">No Technologies detected</td></tr>`;
+            return;
+        }
+
+        const html = data.map(rowTemplate).join('');
+        if (!html.trim()) {
+            tableBody.innerHTML = `<tr><td colspan="3">No Technologies detected</td></tr>`;
+            return;
+        }
+        tableBody.innerHTML = html;
     } catch (error) {
         console.error(`Error populating table ${tableId}:`, error);
-        tableBody.innerHTML = '<tr><td colspan="3">Error loading data</td></tr>';
+        tableBody.innerHTML = `<tr><td colspan="3">No Technologies detected</td></tr>`;
     }
 }
 
