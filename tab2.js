@@ -6,12 +6,12 @@ const libraryPatterns = [
   // { name: 'React', regex: /react(?:[-./@])?(\d+(?:\.\d+)?(?:\.\d+)?)?/gi },
   { name: 'React-Dom', regex: /react-dom(?:[-./@])?(\d+(?:\.\d+)?(?:\.\d+)?)/gi },
   { name: 'Vue.js', regex: /vue(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
-  { name: 'Lodash', regex: /lodash(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
-  { name: 'Moment.js', regex: /moment(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
-  { name: 'GSAP', regex: /gsap(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
-  { name: 'Axios', regex: /axios(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
-  { name: 'Chart.js', regex: /chart(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
-  { name: 'Tailwind CSS', regex: /tailwind(?:[-./@])?(\d+\.\d+\.\d+)?/gi }
+  { name: 'Lodash', regex: /lodash(?:\.js)?\/(\d+\.\d+\.\d+)/gi },
+  { name: 'Moment.js', regex: /moment(?:\.js)?\/(\d+\.\d+\.\d+)/gi },
+  // { name: 'GSAP', regex: /gsap(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+  // { name: 'Axios', regex: /axios(?:[-./@])?(\d+\.\d+\.\d+)?/gi },
+  { name: 'Chart.js', regex: /Chart(?:\.js)?\/(\d+\.\d+\.\d+)/gi },
+  // { name: 'Tailwind CSS', regex: /tailwind(?:[-./@])?(\d+\.\d+\.\d+)?/gi }
 ];
 
 // Global list to store detected libraries
@@ -23,6 +23,15 @@ function initializeStaticAnalysis() {
 
   analyzeButton.addEventListener('click', async () => {
     resultsTable.innerHTML = ''; // Clear previous results
+
+    // Create and show loading indicator
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.id = 'loading-indicator';
+    loadingIndicator.textContent = 'Scanning, please wait...';
+    loadingIndicator.style.padding = '10px';
+    loadingIndicator.style.fontSize = '16px';
+    loadingIndicator.style.color = '#007BFF';
+    document.getElementById('analysis-results').appendChild(loadingIndicator);
 
     const allResults = [];
 
@@ -36,7 +45,6 @@ function initializeStaticAnalysis() {
           if (results && results[0] && results[0].result) {
             const { scripts, links, pageDomain } = results[0].result;
 
-            // Process all dependencies
             for (const src of scripts) {
               allResults.push(await analyzeDependency(src, 'Script', pageDomain));
             }
@@ -44,15 +52,15 @@ function initializeStaticAnalysis() {
               allResults.push(await analyzeDependency(href, 'Link', pageDomain));
             }
 
-            // Sort: Security issues first
             const sortedResults = allResults.sort((a, b) => {
               if (a.risk !== 'None' && b.risk === 'None') return -1;
               if (a.risk === 'None' && b.risk !== 'None') return 1;
               return 0;
             });
 
-            // Add results to table
             sortedResults.forEach(addRowToTable);
+            // Remove loading indicator after scan is complete
+            document.getElementById('loading-indicator').remove();
           }
         }
       );
@@ -158,33 +166,44 @@ function initializeStaticAnalysis() {
         "jQuery": "jquery:jquery",
         "Bootstrap": "getbootstrap:bootstrap",
         "AngularJS": "angularjs:angular.js",
-        // "React": "facebook:react",
+        // "React": "facebook:react", not much vulnerability
         "React-Dom": "facebook:react",
         "Vue.js": "vuetifyjs:vuetify",
         "Lodash": "lodash:lodash",
-        "Moment.js": "momentjs:moment.js",
-        "GSAP": "greensock:gsap",
-        "Axios": "axios:axios",
+        "Moment.js": "momentjs:moment",
+        // "GSAP": "greensock:gsap", not much vulnerability
+        // "Axios": "axios:axios", not much vulnerability
         "Chart.js": "chartjs:chart.js",
-        "Tailwind CSS": "tailwindcss:tailwind.css"
+        //"Tailwind CSS": "tailwindcss:tailwind.css", not much vulnerability
     };
 
     // Ensure React-Dom version is always in x.0.0 format
     if (library === "React-Dom" && /^\d+$/.test(version)) {
       version = `${version}.0.0`;
-  }
+    }
 
-    // Use the correct CPE format if known
-    const vendorProduct = cpeMapping[library] || library.toLowerCase();
-    const cpeName = `cpe:2.3:a:${vendorProduct}:${version}:*:*:*:*:*:*:*`;
-    
-    // Encode only necessary parts
+    let cpeName;
+
+    if (library === "Lodash") {
+      cpeName = `cpe:2.3:a:lodash:lodash:${version}:*:*:*:*:node.js:*:*`;
+  } else if (library === "Moment.js") {
+      cpeName = `cpe:2.3:a:momentjs:moment:${version}:*:*:*:*:node.js:*:*`;
+    } else if (library === "Chart.js") {
+      cpeName = `cpe:2.3:a:chartjs:chart.js:${version}:*:*:*:*:node.js:*:*`;
+  } else {
+      const vendorProduct = cpeMapping[library] || library.toLowerCase();
+      cpeName = `cpe:2.3:a:${vendorProduct}:${version}:*:*:*:*:*:*:*`;
+  }
+  
+  
+
     const apiUrl = `https://services.nvd.nist.gov/rest/json/cves/2.0?cpeName=${encodeURIComponent(cpeName)
-      .replace(/%3A/g, ":") // Revert encoding of `:`
-      .replace(/%2A/g, "*")}`; // Revert encoding of `*`
+      .replace(/%3A/g, ":")
+      .replace(/%2A/g, "*")}`;
     
+    console.log(library, version);
     console.log(apiUrl);
-    
+
     try {
         const response = await fetch(apiUrl);
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
@@ -192,23 +211,25 @@ function initializeStaticAnalysis() {
         const data = await response.json();
 
         if (data && data.vulnerabilities) {
-          const filteredCves = data.vulnerabilities.map(vuln => ({
-              id: vuln.cve.id,
-              severity: vuln.cve.metrics?.cvssMetricV3?.[0]?.baseSeverity || 
-                        vuln.cve.metrics?.cvssMetricV2?.[0]?.baseSeverity || 
-                        "Unknown",
-              score: vuln.cve.metrics?.cvssMetricV3?.[0]?.cvssData?.baseScore || 
-                     vuln.cve.metrics?.cvssMetricV2?.[0]?.cvssData?.baseScore || 
-                     "N/A",
-              description: vuln.cve.descriptions?.[0]?.value || "No description available"
-          }));
+            const filteredCves = data.vulnerabilities.map(vuln => ({
+                id: vuln.cve.id,
+                
+                severity: vuln.cve.metrics?.cvssMetricV31?.[0]?.cvssData?.baseSeverity || 
+                vuln.cve.metrics?.cvssMetricV30?.[0]?.cvssData?.baseSeverity || 
+                vuln.cve.metrics?.cvssMetricV2?.[0]?.cvssData?.baseSeverity || 
+                "Unknown",
 
-          console.log(`Filtered CVEs for ${library} ${version}:`, filteredCves);
-          return filteredCves;
-      } else {
-          console.log(`No vulnerabilities found for ${library} ${version}`);
-          return [];
-      }
+                score: vuln.cve.metrics?.cvssMetricV31?.[0]?.cvssData?.baseScore || 
+                vuln.cve.metrics?.cvssMetricV30?.[0]?.cvssData?.baseScore || 
+                vuln.cve.metrics?.cvssMetricV2?.[0]?.cvssData?.baseScore || 
+                "N/A",
+
+                description: vuln.cve.descriptions?.[0]?.value || "No description available"
+            }));
+            return filteredCves;
+        } else {
+            return [];
+        }
     } catch (error) {
         console.error("Error fetching CVE data:", error);
         return [];
