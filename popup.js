@@ -63,60 +63,13 @@ document.addEventListener('click', (event) => {
     const row = event.target.closest('tr');
     if (row && row.cells[0] && row.cells[0].innerText.trim() === 'Cookie') {
       event.preventDefault();
-      showCookieModal();
-    }
-    // Additional view-link handling (e.g., for CVE details) can be added here.
-  }
-});
-
-// Function to show a modal with cookie details
-function showCookieModal() {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    const activeTab = tabs[0];
-    if (activeTab && activeTab.url) {
-      chrome.cookies.getAll({ url: activeTab.url }, (cookies) => {
-        let cookieHTML = `<h2>Cookies for ${activeTab.url}</h2>
-          <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Value</th>
-                <th>HTTPOnly</th>
-              </tr>
-            </thead>
-            <tbody>`;
-        cookies.forEach(cookie => {
-          cookieHTML += `<tr>
-            <td>${cookie.name}</td>
-            <td>${cookie.value}</td>
-            <td>${cookie.httpOnly ? 'True' : 'False'}</td>
-          </tr>`;
-        });
-        cookieHTML += `</tbody></table>
-          <button id="closeCookieModal" style="margin-top: 10px;">Close</button>`;
-        
-        // Create the modal if it doesn't exist
-        let modal = document.getElementById('cookieModal');
-        if (!modal) {
-          modal = document.createElement('div');
-          modal.id = 'cookieModal';
-          modal.style.position = 'fixed';
-          modal.style.top = '0';
-          modal.style.left = '0';
-          modal.style.width = '100%';
-          modal.style.height = '100%';
-          modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-          modal.style.zIndex = '1000';
-          modal.innerHTML = `<div id="cookieModalContent" style="background: white; color: black; margin: 10% auto; padding: 20px; width: 80%; max-width: 600px; border-radius: 4px;"></div>`;
-          document.body.appendChild(modal);
+      // Use the showStorageDetails function from mainTab.js which shows all columns
+      import('./script/tabs/mainTab.js').then(module => {
+        const type = event.target.dataset.type;
+        if (type) {
+          module.showStorageDetails(type);
         }
-        const modalContent = document.getElementById('cookieModalContent');
-        modalContent.innerHTML = cookieHTML;
-        modal.style.display = 'block';
-        document.getElementById('closeCookieModal').addEventListener('click', () => {
-          modal.style.display = 'none';
-        });
       });
     }
-  });
-}
+  }
+});

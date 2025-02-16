@@ -43,7 +43,9 @@
       "js": [
         "script/urlParser.js", 
         "script/techStack.js"
-      ]
+      ],
+      "run_at": "document_end",
+      "all_frames": true
     }
   ],
   "background": {
