@@ -230,9 +230,19 @@ export async function initializeTab3() {
                                     <div class="vuln-description">${vuln.description}</div>
                                     <div class="vuln-details">
                                         <div class="vuln-info">
-                                            ${vuln.additionalInfo ? `<div class="additional-info">${vuln.additionalInfo}</div>` : ''}
+                                            ${vuln.additionalInfo ? 
+                                              `<div class="additional-info">${vuln.additionalInfo}</div>` : ''}
+                                            ${vuln.validationInfo ? `
+                                                <div class="validation-info">
+                                                    <p>Input Type: ${vuln.validationInfo.inputType}</p>
+                                                    <p>Pattern Restriction: ${vuln.validationInfo.hasPattern ? 'Yes' : 'No'}</p>
+                                                    <p>Length Limit: ${vuln.validationInfo.hasLengthLimit ? 'Yes' : 'No'}</p>
+                                                    <p>Value Sanitized: ${vuln.validationInfo.wasValueSanitized ? 'Yes' : 'No'}</p>
+                                                    <p>Validation Triggered: ${vuln.validationInfo.triggeredValidation ? 'Yes' : 'No'}</p>
+                                                </div>` : ''}
                                         </div>
                                         <div class="vuln-payload">
+                                            <p>Test Payload:</p>
                                             <code>${escapeHtml(vuln.payload)}</code>
                                         </div>
                                     </div>
@@ -260,18 +270,7 @@ export async function initializeTab3() {
         fieldHeaders.forEach(header => {
             header.addEventListener('click', function() {
                 const index = this.getAttribute('data-index');
-                const list = document.getElementById(`vuln-list-${index}`);
-                const arrow = this.querySelector('.arrow');
-                
-                if (list && arrow) {
-                    if (list.style.display === 'none') {
-                        list.style.display = 'block';
-                        arrow.textContent = '▼';
-                    } else {
-                        list.style.display = 'none';
-                        arrow.textContent = '▶';
-                    }
-                }
+                window.toggleVulnerabilities(index);
             });
         });
     
@@ -293,18 +292,18 @@ export async function initializeTab3() {
             .replace(/'/g, "&#039;");
     }
 
-    // Function to toggle vulnerability details
-    window.toggleVulnerabilities = function (index) {
-        const list = document.getElementById(`vuln-list-${index}`);
-        const arrow = list.previousElementSibling.querySelector('.arrow');
-        if (list.style.display === 'none') {
-            list.style.display = 'block';
-            arrow.textContent = '▼';
-        } else {
-            list.style.display = 'none';
-            arrow.textContent = '▶';
-        }
-    }
+    // // Function to toggle vulnerability details
+    // window.toggleVulnerabilities = function (index) {
+    //     const list = document.getElementById(`vuln-list-${index}`);
+    //     const arrow = list.previousElementSibling.querySelector('.arrow');
+    //     if (list.style.display === 'none') {
+    //         list.style.display = 'block';
+    //         arrow.textContent = '▼';
+    //     } else {
+    //         list.style.display = 'none';
+    //         arrow.textContent = '▶';
+    //     }
+    // }
 
     // Function to generate and download report
     function generateAndDownloadReport(results) {
@@ -367,6 +366,4 @@ export async function initializeTab3() {
     }
     console.log("Tab3 initialization complete");
 
-
 }
-

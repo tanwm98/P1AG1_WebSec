@@ -34,91 +34,117 @@ const testCases = {
 
 async function testInputField(input, test) {
     try {
-        console.log(`Testing field: ${input.name || input.id || 'unnamed'}`);
+        // 1. Save initial state
         const originalValue = input.value;
-
-        // Save initial state
-        const initialProperties = {
+        const form = input.form;
+        let isInForm = !!form;
+        
+        // 2. Analyze field context
+        const fieldContext = {
+            name: input.name?.toLowerCase() || '',
             type: input.type,
+            isTextArea: input.tagName === 'TEXTAREA',
+            isRichText: input.getAttribute('contenteditable') === 'true',
             maxLength: input.maxLength,
             pattern: input.pattern,
-            required: input.required
+            acceptsHTML: ['html', 'richtext', 'editor'].some(term => 
+                fieldContext.name.includes(term)
+            )
         };
 
+        // 3. Set test value
         input.value = test.payload;
-
-        // Trigger validation events
         input.dispatchEvent(new Event('input', { bubbles: true }));
         input.dispatchEvent(new Event('change', { bubbles: true }));
         input.dispatchEvent(new Event('blur', { bubbles: true }));
 
+        // 4. Wait for validation
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Get the final value after any client-side sanitization
+        // 5. Gather validation results
         const finalValue = input.value;
-        
-        // Check if the value was changed by any client-side validation/sanitization
         const wasValueSanitized = finalValue !== test.payload;
-        
-        // Check HTML5 validation state
         const isInvalid = !input.validity.valid;
         
-        // Check for input restrictions
-        const hasRestrictions = input.pattern || 
-                               input.maxLength > 0 || 
-                               ['email', 'number', 'url'].includes(input.type);
-
+        // 6. Type-specific vulnerability checks
         let isVulnerable = false;
         let additionalInfo = '';
-
+        
         switch(test.type) {
             case 'xss':
-                // For XSS, check if script tags survive and aren't escaped
-                isVulnerable = finalValue.includes('<script>') && 
-                              !finalValue.includes('&lt;script&gt;') &&
-                              !wasValueSanitized &&
-                              !isInvalid;
-                additionalInfo = isVulnerable ? 
-                    'Field accepts and preserves unescaped script tags' : 
-                    'Script tags are either escaped or rejected';
+                if (fieldContext.acceptsHTML || fieldContext.isRichText) {
+                    // Field is meant to accept HTML, not vulnerable
+                    isVulnerable = false;
+                    additionalInfo = 'Field is designed to accept HTML content';
+                } else {
+                    const containsScriptTag = finalValue.includes('<script>');
+                    const containsEscapedScript = finalValue.includes('&lt;script&gt;');
+                    const hasJavaScriptProtocol = finalValue.toLowerCase().includes('javascript:');
+                    
+                    isVulnerable = !isInvalid && !wasValueSanitized && 
+                                 ((containsScriptTag && !containsEscapedScript) || 
+                                  hasJavaScriptProtocol);
+                    
+                    additionalInfo = isVulnerable ? 
+                        'Unsanitized script content accepted' : 
+                        'Content properly sanitized or rejected';
+                }
                 break;
 
             case 'sqli':
-                // For SQL injection, check if SQL special chars are preserved
-                isVulnerable = finalValue.includes("'") && 
-                              finalValue.includes("=") &&
-                              !wasValueSanitized &&
-                              !isInvalid;
-                additionalInfo = isVulnerable ? 
-                    'Field accepts SQL control characters without sanitization' : 
-                    'SQL special characters are properly handled';
+                // Only test fields that might interact with a database
+                const isDatabaseField = /^(username|password|email|search|query|id|name)$/i
+                    .test(fieldContext.name);
+                
+                if (!isDatabaseField) {
+                    isVulnerable = false;
+                    additionalInfo = 'Field unlikely to interact with database';
+                } else {
+                    const hasSQLKeywords = /\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|WHERE)\b/i
+                        .test(finalValue);
+                    const hasQuotes = finalValue.includes("'") || finalValue.includes('"');
+                    const hasEqualSign = finalValue.includes('=');
+                    
+                    isVulnerable = !isInvalid && !wasValueSanitized && 
+                                 (hasSQLKeywords || (hasQuotes && hasEqualSign));
+                                 
+                    additionalInfo = isVulnerable ?
+                        'SQL control characters accepted without sanitization' :
+                        'SQL patterns properly handled';
+                }
                 break;
 
             case 'special':
-                // For special chars, check if they're accepted without validation
-                isVulnerable = !wasValueSanitized && 
-                              !isInvalid && 
-                              !hasRestrictions;
-                additionalInfo = isVulnerable ? 
-                    'Field accepts special characters without validation' : 
-                    'Special characters are properly validated';
+                if (fieldContext.isTextArea || fieldContext.isRichText) {
+                    // These fields are expected to accept special characters
+                    isVulnerable = false;
+                    additionalInfo = 'Field type allows special characters';
+                } else {
+                    const hasSpecialChars = /[<>'"&;()\\]/.test(finalValue);
+                    isVulnerable = hasSpecialChars && !wasValueSanitized && 
+                                 !isInvalid && !fieldContext.pattern;
+                                 
+                    additionalInfo = isVulnerable ?
+                        'Special characters accepted without validation' :
+                        'Special characters properly handled';
+                }
                 break;
         }
 
-        // Restore original value
+        // 7. Reset field state
         input.value = originalValue;
-
-        console.log(`Test result for ${input.name || input.id}: ${isVulnerable ? 'Vulnerable' : 'Safe'}`);
         
         return {
             isVulnerable,
             additionalInfo,
             validationInfo: {
-                inputType: input.type,
-                hasPattern: !!input.pattern,
-                hasLengthLimit: input.maxLength > 0,
+                inputType: fieldContext.type,
+                hasPattern: !!fieldContext.pattern,
+                hasLengthLimit: fieldContext.maxLength > 0,
                 wasValueSanitized,
-                triggeredValidation: isInvalid
+                triggeredValidation: isInvalid,
+                isInForm: isInForm,
+                fieldName: fieldContext.name
             }
         };
 
@@ -126,7 +152,7 @@ async function testInputField(input, test) {
         console.error('Error testing input field:', error);
         return {
             isVulnerable: false,
-            additionalInfo: 'Error during testing',
+            additionalInfo: 'Error during testing: ' + error.message,
             error: error.message
         };
     }
@@ -153,13 +179,15 @@ async function runTests() {
             
             for (const [category, testSet] of Object.entries(testCases)) {
                 for (const test of testSet.tests) {
-                    const isVulnerable = await testInputField(input, test);
+                    const testResult = await testInputField(input, test);
                     
-                    if (isVulnerable) {
+                    if (testResult.isVulnerable) {
                         fieldResult.vulnerabilities.push({
                             type: testSet.name,
                             description: test.description,
-                            payload: test.payload
+                            payload: test.payload,
+                            additionalInfo: testResult.additionalInfo,
+                            validationInfo: testResult.validationInfo
                         });
                     }
                     
@@ -170,15 +198,23 @@ async function runTests() {
                         currentField: fieldResult.fieldName
                     });
                     
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                    // Reduced delay to speed up testing while still allowing for UI updates
+                    await new Promise(resolve => setTimeout(resolve, 50));
                 }
             }
             
-            results.push(fieldResult);
+            // Only add fields to results if they have vulnerabilities or are specifically marked safe
+            if (fieldResult.vulnerabilities.length > 0) {
+                results.push(fieldResult);
+            } else {
+                results.push({
+                    ...fieldResult,
+                    isSafe: true
+                });
+            }
         }
         
         console.log('Tests completed, sending results:', results);
-        // Send results message
         chrome.runtime.sendMessage({
             type: 'results',
             results: results
