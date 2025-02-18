@@ -3,6 +3,7 @@ console.log('Tab4.js is loading...');
 function initializeTab4() {
   console.log('Initializing Tab4...');
   const subdomainResults = document.getElementById("subdomain-results");
+  const statusDiv = document.getElementById("status");
   
   if (!subdomainResults) {
     console.error('Could not find subdomain-results element');
@@ -43,7 +44,7 @@ function initializeTab4() {
       const data = await response.json();
       console.log('Scan results:', data);
 
-      if (!data.subdomains) {
+      if (!data.results) {
         throw new Error("Invalid response format");
       }
 
@@ -60,22 +61,35 @@ function initializeTab4() {
   }
 
   function displayResults(data) {
-    subdomainResults.innerHTML = '';
-    if (data.subdomains?.length > 0) {
-      const header = document.createElement("li");
-      header.textContent = `Found ${data.subdomains.length} subdomains:`;
-      header.style.fontWeight = "bold";
-      subdomainResults.appendChild(header);
-      
-      data.subdomains.forEach(subdomain => {
-        const li = document.createElement("li");
-        li.textContent = subdomain;
-        li.classList.add("subdomain");
-        subdomainResults.appendChild(li);
-      });
-    } else {
-      subdomainResults.innerHTML = "<li class='error'>No subdomains found.</li>";
+    const resultsBody = document.getElementById("subdomain-results");
+    const statusDiv = document.getElementById("status");
+    
+    if (!data.results?.length) {
+        resultsBody.innerHTML = '<tr><td colspan="3" class="error">No subdomains found.</td></tr>';
+        return;
     }
+
+    // Filter inactive subdomains
+    const inactiveSubdomains = data.results.filter(item => !item.status.active);
+    
+    if (inactiveSubdomains.length === 0) {
+        resultsBody.innerHTML = '<tr><td colspan="3">All subdomains are active!</td></tr>';
+        return;
+    }
+
+    // Update status
+    statusDiv.textContent = `Found ${inactiveSubdomains.length} inactive subdomains out of ${data.total} total`;
+
+    // Display results
+    resultsBody.innerHTML = inactiveSubdomains
+        .map(item => `
+            <tr class="inactive">
+                <td>${item.subdomain}</td>
+                <td>${item.status.ip || 'N/A'}</td>
+                <td class="error">${item.status.error || 'Unknown error'}</td>
+            </tr>
+        `)
+        .join('');
   }
 
   // Start scan immediately

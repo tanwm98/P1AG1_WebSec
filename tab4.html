@@ -7,15 +7,38 @@
     p { margin: 10px; }
     button { margin: 10px; padding: 10px; font-size: 16px; cursor: pointer; }
     ul { margin-left: 10px; }
-    .error { color: red; }
+    .error { color: #e74c3c; }
     .subdomain { color: green; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+      border: 1px solid #ddd;
+    }
+    th {
+      background-color: #f5f5f5;
+    }
+    .loading { text-align: center; padding: 20px; }
+    .inactive { background-color: #fee; }
   </style>
 </head>
 <body>
-  <h1>Subdomain Scanner</h1>
-  <p>Scanning for subdomains</p>
-  <ul id="subdomain-results"></ul>
-
+  <h1>Inactive Subdomains</h1>
+  <div id="status"></div>
+  <table id="subdomain-table">
+    <thead>
+      <tr>
+        <th>Subdomain</th>
+        <th>IP Address</th>
+        <th>Error</th>
+      </tr>
+    </thead>
+    <tbody id="subdomain-results"></tbody>
+  </table>
   <script src="tab4.js"></script>
 </body>
 </html>
