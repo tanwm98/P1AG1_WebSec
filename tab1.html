@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>DNS Information</title>
+  <link rel="stylesheet" href="style/tab1.css">
+</head>
+<body>
+  <div class="scan-progress">
+    <div class="progress-container">
+      <div class="progress-bar" id="scanProgress"></div>
+    </div>
+    <div class="scan-status" id="scanStatus">Initializing scan...</div>
+  </div>
+  <div class="info-section">
+    <div class="info-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </svg>
+      Security Headers Analysis
+    </div>
+    <table class="security-table" id="securityHeaders">
+      <thead>
+        <tr>
+          <th>Header</th>
+          <th>Status</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Will be populated by JavaScript -->
+      </tbody>
+    </table>
+  </div>
+
+  <div class="info-section">
+    <div class="info-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+      </svg>
+      SSL/TLS Analysis
+    </div>
+    <div id="sslContent" class="info-content">
+      <!-- Will be populated by JavaScript -->
+    </div>
+  </div>
+
+  <div class="info-section">
+    <div class="info-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+      </svg>
+      JavaScript Security Analysis
+    </div>
+    <table class="security-table" id="jsAnalysis">
+      <thead>
+        <tr>
+          <th>Issue</th>
+          <th>Severity</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Will be populated by JavaScript -->
+      </tbody>
+    </table>
+  </div>
+
+  <div class="info-section">
+    <div class="info-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12" y2="8"></line>
+      </svg>
+      Input Field Analysis
+    </div>
+    <table class="security-table" id="inputAnalysis">
+      <thead>
+        <tr>
+          <th>Field Type</th>
+          <th>Security Issues</th>
+          <th>Recommendations</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Will be populated by JavaScript -->
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

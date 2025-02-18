@@ -1,0 +1,57 @@
+{
+  "manifest_version": 3,
+  "name": "ExMM",
+  "version": "1.0",
+  "description": "Exploit Mitigation Monitor",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs",
+    "windows",
+    "scripting",
+    "cookies",
+    "webRequest",
+    "webNavigation"
+  ],
+  "icons": {
+    "16": "media/icon16.png",
+    "48": "media/icon48.png",
+    "128": "media/icon128.png"
+  },
+  "host_permissions": [
+    "https://dns.google/*",
+    "<all_urls>"
+  ],
+  "web_accessible_resources": [{
+    "resources": [
+      "tab1.html",
+      "tab2.html",
+      "tab3.html",
+      "tab4.html",
+      "tab5.html",
+      "script/*",
+      "style/*"
+    ],
+    "matches": ["<all_urls>"]
+  }],
+  "action": {
+    "default_popup": "main.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "script/urlParser.js", 
+        "script/techStack.js"
+      ],
+      "run_at": "document_end",
+      "all_frames": true
+    }
+  ],
+  "background": {
+    "service_worker": "script/background.js"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
+  }
+}

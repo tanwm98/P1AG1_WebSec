@@ -17,7 +17,7 @@ const libraryPatterns = [
 // Global list to store detected libraries
 let detectedLibraries = [];
 
-function initializeStaticAnalysis() {
+function initializeTab2() {
   const analyzeButton = document.getElementById('analyze-btn');
   const resultsTable = document.getElementById('results-table').querySelector('tbody');
 
@@ -251,3 +251,5 @@ function initializeStaticAnalysis() {
     return { scripts, links, pageDomain };
   }
 }
+
+export default initializeTab2;
