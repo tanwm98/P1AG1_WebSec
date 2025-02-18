@@ -4,7 +4,6 @@
   <title>Software Composition Analysis (SCA)</title>
   <style>
     body {
-      
       margin: 0; /* Ensure no margin for the navbar */
     }
 
@@ -71,6 +70,15 @@
     td {
       white-space: nowrap; /* Prevent text from wrapping */
     }
+
+    .error-message {
+      color: red;
+      margin-bottom: 20px;
+      padding: 10px;
+      border: 1px solid red;
+      border-radius: 4px;
+      background-color: #ffe5e5;
+    }
   </style>
   <script src="tab2.js"></script> 
 </head>
@@ -81,6 +89,7 @@
     <button id="analyze-btn">Scan Now</button>
     <div id="analysis-results">
       <h3>Results:</h3>
+      <div id="error-message" class="error-message" style="display: none;"></div>
       <table id="results-table">
         <thead>
           <tr>
@@ -98,7 +107,6 @@
           <!-- Results will be populated here -->
         </tbody>
       </table>
-      
     </div>
   </div>
 </body>

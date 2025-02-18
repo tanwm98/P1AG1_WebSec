@@ -103,35 +103,42 @@ function initializeTab2() {
 }
 
 
+async function analyzeDependency(url, type, pageDomain) {
+  let detectedLibraries = detectLibrary(url);
+  let thirdParty = !url.includes(pageDomain);
+  let risk = 'None';
+  let cveData = [];
+  let fetchError = false;
+  let fetchErrorDetails = null;
 
-  async function analyzeDependency(url, type, pageDomain) {
-    let detectedLibraries = detectLibrary(url);
-    let thirdParty = !url.includes(pageDomain);
-    let risk = 'None';
-    let cveData = [];
-
-    // Security checks
-    // if (url.startsWith('http://')) {
-    //   risk = 'Insecure protocol (http)';
-    // }
-    // if (url.includes('redirect')) {
-    //   risk = 'Potential unsafe redirect';
-    // }
-    // if (url.includes('eval')) {
-    //   risk = 'Potential XSS risk (eval detected)';
-    // }
-
-    // Fetch CVE data for each detected library
-    for (const lib of detectedLibraries) {
+  // Fetch CVE data for each detected library
+  for (const lib of detectedLibraries) {
+    try {
       const cveResults = await fetchFilteredCveData(lib.name, lib.version);
       if (cveResults.length > 0) {
         risk = "Known vulnerabilities found";
         cveData.push(...cveResults);
       }
+    } catch (error) {
+      fetchError = true;
+      fetchErrorDetails = error;
     }
-
-    return { risk, library: detectedLibraries.map(lib => lib.name).join(', '), version: detectedLibraries.map(lib => lib.version).join(', '), thirdParty, type, source: url, cveData };
   }
+
+  if (fetchError && cveData.length === 0) {
+    displayErrorMessage(`Error fetching CVE data: ${fetchErrorDetails.message} (Status: ${fetchErrorDetails.status}). Please see the API urls provided instead.`);
+    cveData.push({ id: fetchErrorDetails.apiUrl, severity: "N/A", score: "N/A", description: `Error fetching CVE data: ${fetchErrorDetails.message} (Status: ${fetchErrorDetails.status})` });
+  }
+
+  return { risk, library: detectedLibraries.map(lib => lib.name).join(', '), version: detectedLibraries.map(lib => lib.version).join(', '), thirdParty, type, source: url, cveData };
+}
+
+function displayErrorMessage(message) {
+  const errorMessageDiv = document.getElementById('error-message');
+  errorMessageDiv.textContent = message;
+  errorMessageDiv.style.display = 'block';
+
+}
 
   function detectLibrary(url) {
     let detectedLibraries = [];
@@ -160,82 +167,72 @@ function initializeTab2() {
     return detectedLibraries;
 }
 
-  async function fetchFilteredCveData(library, version) {
-    // Normalize library names for correct CPE format
-    const cpeMapping = {
-        "jQuery": "jquery:jquery",
-        "Bootstrap": "getbootstrap:bootstrap",
-        "AngularJS": "angularjs:angular.js",
-        // "React": "facebook:react", not much vulnerability
-        "React-Dom": "facebook:react",
-        "Vue.js": "vuetifyjs:vuetify",
-        "Lodash": "lodash:lodash",
-        "Moment.js": "momentjs:moment",
-        // "GSAP": "greensock:gsap", not much vulnerability
-        // "Axios": "axios:axios", not much vulnerability
-        "Chart.js": "chartjs:chart.js",
-        //"Tailwind CSS": "tailwindcss:tailwind.css", not much vulnerability
-    };
+async function fetchFilteredCveData(library, version) {
+  // Normalize library names for correct CPE format
+  const cpeMapping = {
+    "jQuery": "jquery:jquery",
+    "Bootstrap": "getbootstrap:bootstrap",
+    "AngularJS": "angularjs:angular.js",
+    // "React": "facebook:react", not much vulnerability
+    "React-Dom": "facebook:react",
+    "Vue.js": "vuetifyjs:vuetify",
+    "Lodash": "lodash:lodash",
+    "Moment.js": "momentjs:moment",
+    // "GSAP": "greensock:gsap", not much vulnerability
+    // "Axios": "axios:axios", not much vulnerability
+    "Chart.js": "chartjs:chart.js",
+    //"Tailwind CSS": "tailwindcss:tailwind.css", not much vulnerability
+  };
 
-    // Ensure React-Dom version is always in x.0.0 format
-    if (library === "React-Dom" && /^\d+$/.test(version)) {
-      version = `${version}.0.0`;
-    }
-
-    let cpeName;
-
-    if (library === "Lodash") {
-      cpeName = `cpe:2.3:a:lodash:lodash:${version}:*:*:*:*:node.js:*:*`;
-  } else if (library === "Moment.js") {
-      cpeName = `cpe:2.3:a:momentjs:moment:${version}:*:*:*:*:node.js:*:*`;
-    } else if (library === "Chart.js") {
-      cpeName = `cpe:2.3:a:chartjs:chart.js:${version}:*:*:*:*:node.js:*:*`;
-  } else {
-      const vendorProduct = cpeMapping[library] || library.toLowerCase();
-      cpeName = `cpe:2.3:a:${vendorProduct}:${version}:*:*:*:*:*:*:*`;
+  // Ensure React-Dom version is always in x.0.0 format
+  if (library === "React-Dom" && /^\d+$/.test(version)) {
+    version = `${version}.0.0`;
   }
-  
-  
 
-    const apiUrl = `https://services.nvd.nist.gov/rest/json/cves/2.0?cpeName=${encodeURIComponent(cpeName)
-      .replace(/%3A/g, ":")
-      .replace(/%2A/g, "*")}`;
-    
-    console.log(library, version);
+  let cpeName;
+  if (library === "Lodash") {
+    cpeName = `cpe:2.3:a:lodash:lodash:${version}:*:*:*:*:node.js:*:*`;
+  } else if (library === "Moment.js") {
+    cpeName = `cpe:2.3:a:momentjs:moment:${version}:*:*:*:*:node.js:*:*`;
+  } else if (library === "Chart.js") {
+    cpeName = `cpe:2.3:a:chartjs:chart.js:${version}:*:*:*:*:node.js:*:*`;
+  } else {
+    const vendorProduct = cpeMapping[library] || library.toLowerCase();
+    cpeName = `cpe:2.3:a:${vendorProduct}:${version}:*:*:*:*:*:*:*`;
+  }
+
+  const apiUrl = `https://services.nvd.nist.gov/rest/json/cves/2.0?cpeName=${encodeURIComponent(cpeName)
+    .replace(/%3A/g, ":")
+    .replace(/%2A/g, "*")}`;
+
+    console.log(library, version); 
     console.log(apiUrl);
 
-    try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+  try {
+    const response = await fetch(apiUrl);
+    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
-        const data = await response.json();
-
-        if (data && data.vulnerabilities) {
-            const filteredCves = data.vulnerabilities.map(vuln => ({
-                id: vuln.cve.id,
-
-                severity: vuln.cve.metrics?.cvssMetricV31?.[0]?.cvssData?.baseSeverity || 
-                vuln.cve.metrics?.cvssMetricV30?.[0]?.cvssData?.baseSeverity || 
-                vuln.cve.metrics?.cvssMetricV2?.[0]?.cvssData?.baseSeverity || 
-                "Unknown",
-
-                score: vuln.cve.metrics?.cvssMetricV31?.[0]?.cvssData?.baseScore || 
-                vuln.cve.metrics?.cvssMetricV30?.[0]?.cvssData?.baseScore || 
-                vuln.cve.metrics?.cvssMetricV2?.[0]?.cvssData?.baseScore || 
-                "N/A",
-
-                description: vuln.cve.descriptions?.[0]?.value || "No description available"
-            }));
-            return filteredCves;
-        } else {
-            return [];
-        }
-    } catch (error) {
-        console.error("Error fetching CVE data:", error);
-        return [];
+    const data = await response.json();
+    if (data && data.vulnerabilities) {
+      const filteredCves = data.vulnerabilities.map(vuln => ({
+        id: vuln.cve.id,
+        severity: vuln.cve.metrics?.cvssMetricV31?.[0]?.cvssData?.baseSeverity ||
+          vuln.cve.metrics?.cvssMetricV30?.[0]?.cvssData?.baseSeverity ||
+          vuln.cve.metrics?.cvssMetricV2?.[0]?.cvssData?.baseSeverity || "Unknown",
+        score: vuln.cve.metrics?.cvssMetricV31?.[0]?.cvssData?.baseScore ||
+          vuln.cve.metrics?.cvssMetricV30?.[0]?.cvssData?.baseScore ||
+          vuln.cve.metrics?.cvssMetricV2?.[0]?.cvssData?.baseScore || "N/A",
+        description: vuln.cve.descriptions?.[0]?.value || "No description available"
+      }));
+      return filteredCves;
+    } else {
+      return [];
     }
+  } catch (error) {
+    error.apiUrl = apiUrl;
+    throw error;
+  }
 }
-
 
   function analyzePage() {
     const pageDomain = window.location.hostname;
