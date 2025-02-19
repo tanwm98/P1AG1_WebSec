@@ -1,29 +1,58 @@
 {
   "manifest_version": 3,
-  "name": "eXMM",
+  "name": "ExMM",
   "version": "1.0",
   "description": "Exploit Mitigation Monitor",
-  "permissions": ["activeTab", "scripting", "tabs"],
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs",
+    "windows",
+    "scripting",
+    "cookies",
+    "webRequest",
+    "webNavigation"
+  ],
+  "icons": {
+    "16": "media/icon16.png",
+    "48": "media/icon48.png",
+    "128": "media/icon128.png"
+  },
   "host_permissions": [
     "https://dns.google/*",
-    "http://localhost:5000/*"
+    "http://localhost:5000/*",
+    "<all_urls>"
   ],
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
-  },
   "web_accessible_resources": [{
-    "resources": ["tab4.js"],
+    "resources": [
+      "tab1.html",
+      "tab2.html",
+      "tab3.html",
+      "tab4.html",
+      "tab5.html",
+      "script/*",
+      "style/*"
+    ],
     "matches": ["<all_urls>"]
   }],
-  "background": {
-    "service_worker": "background.js"
-  },
   "action": {
-    "default_popup": "main.html",
-    "default_icon": {
-      "16": "media/icon16.png",
-      "48": "media/icon48.png",
-      "128": "media/icon128.png"
+    "default_popup": "main.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "script/urlParser.js", 
+        "script/techStack.js"
+      ],
+      "run_at": "document_end",
+      "all_frames": true
     }
+  ],
+  "background": {
+    "service_worker": "script/background.js"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
   }
 }
