@@ -63,7 +63,24 @@ tabs.forEach(tab => {
                     console.error('Error importing tab3 module:', importError);
                     throw importError;
                 }
-            } else if (file === 'tab5.html') {
+            
+            } else if (file === 'tab4.html') {
+                try {
+                    console.log('Importing tab4.js module...');
+                    const tab4Module = await import('./script/tabs/tab4.js');
+                    console.log('Import successful, initializing tab4...');
+                    if (tab4Module.initializeTab4) {
+                        await tab4Module.initializeTab4();
+                    } else {
+                        console.error('initializeTab4 function not found in module');
+                    }
+                } catch (importError) {
+                    console.error('Error importing tab4 module:', importError);
+                    throw importError;
+                }
+            
+            }
+             else if (file === 'tab5.html') {
                 try {
                     const tab5Module = await import('./script/tabs/tab5.js');
                     await tab5Module.initializeTab5();
