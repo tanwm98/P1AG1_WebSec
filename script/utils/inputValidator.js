@@ -12,7 +12,8 @@ const testCases = {
         tests: [
             { payload: '<script>alert(1)</script>', description: 'Basic XSS', type: 'xss' },
             { payload: '"><script>alert(1)</script>', description: 'Attribute XSS', type: 'xss' },
-            { payload: 'javascript:alert(1)', description: 'Protocol XSS', type: 'xss' }
+            { payload: 'javascript:alert(1)', description: 'Protocol XSS', type: 'xss' },
+            { payload: '`${alert(1)}`', description: 'Template Literal XSS', type: 'xss' }  // Added test
         ]
     },
     sqli: {
@@ -20,14 +21,16 @@ const testCases = {
         tests: [
             { payload: "' OR '1'='1", description: 'Basic SQLi', type: 'sqli' },
             { payload: '" OR "1"="1', description: 'Double Quote SQLi', type: 'sqli' },
-            { payload: '1; DROP TABLE users--', description: 'Command SQLi', type: 'sqli' }
+            { payload: '1; DROP TABLE users--', description: 'Command SQLi', type: 'sqli' },
+            { payload: 'UNION SELECT * FROM users', description: 'UNION SQLi', type: 'sqli' }  // Added test
         ]
     },
     special: {
         name: 'Special Characters',
         tests: [
             { payload: '@#$%^&*()', description: 'Basic Special Chars', type: 'special' },
-            { payload: '§±!@£$%^&*()', description: 'Extended Special Chars', type: 'special' }
+            { payload: '§±!@£$%^&*()', description: 'Extended Special Chars', type: 'special' },
+            { payload: '`~<>%\\', description: 'Additional Special Chars', type: 'special' }  // Added test
         ]
     }
 };
@@ -39,18 +42,20 @@ async function testInputField(input, test) {
         const form = input.form;
         let isInForm = !!form;
         
-        // 2. Analyze field context
+        // 2. Analyze field context - Fixed circular reference
         const fieldContext = {
             name: input.name?.toLowerCase() || '',
             type: input.type,
             isTextArea: input.tagName === 'TEXTAREA',
             isRichText: input.getAttribute('contenteditable') === 'true',
             maxLength: input.maxLength,
-            pattern: input.pattern,
-            acceptsHTML: ['html', 'richtext', 'editor'].some(term => 
-                fieldContext.name.includes(term)
-            )
+            pattern: input.pattern
         };
+
+        // Add acceptsHTML property after object creation
+        fieldContext.acceptsHTML = ['html', 'richtext', 'editor', 'content'].some(term => 
+            fieldContext.name.includes(term)
+        );
 
         // 3. Set test value
         input.value = test.payload;
@@ -58,13 +63,24 @@ async function testInputField(input, test) {
         input.dispatchEvent(new Event('change', { bubbles: true }));
         input.dispatchEvent(new Event('blur', { bubbles: true }));
 
-        // 4. Wait for validation
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // 4. Wait for validation - Increased timeout
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-        // 5. Gather validation results
+        // 5. Gather validation results - Enhanced validation checks
         const finalValue = input.value;
         const wasValueSanitized = finalValue !== test.payload;
-        const isInvalid = !input.validity.valid;
+        const isInvalid = !input.validity.valid || 
+                         input.getAttribute('aria-invalid') === 'true' ||
+                         input.classList.contains('invalid') ||
+                         input.classList.contains('error');
+
+        // Store original field state before further tests
+        const originalFieldState = {
+            value: input.value,
+            validity: input.validity.valid,
+            classList: [...input.classList],
+            attributes: {}
+        };
         
         // 6. Type-specific vulnerability checks
         let isVulnerable = false;
@@ -73,66 +89,84 @@ async function testInputField(input, test) {
         switch(test.type) {
             case 'xss':
                 if (fieldContext.acceptsHTML || fieldContext.isRichText) {
-                    // Field is meant to accept HTML, not vulnerable
                     isVulnerable = false;
                     additionalInfo = 'Field is designed to accept HTML content';
                 } else {
-                    const containsScriptTag = finalValue.includes('<script>');
-                    const containsEscapedScript = finalValue.includes('&lt;script&gt;');
+                    // Enhanced XSS detection
+                    const containsScriptTag = finalValue.toLowerCase().includes('<script');
+                    const containsEscapedScript = finalValue.includes('&lt;script') || 
+                                                finalValue.includes('&#');
                     const hasJavaScriptProtocol = finalValue.toLowerCase().includes('javascript:');
+                    const hasEventHandler = /\bon\w+\s*=/i.test(finalValue);
+                    const hasTemplateExpression = /\${\s*.*\s*}/g.test(finalValue);
                     
                     isVulnerable = !isInvalid && !wasValueSanitized && 
-                                 ((containsScriptTag && !containsEscapedScript) || 
-                                  hasJavaScriptProtocol);
+                                 (containsScriptTag && !containsEscapedScript) || 
+                                 hasJavaScriptProtocol ||
+                                 hasEventHandler ||
+                                 hasTemplateExpression;
                     
                     additionalInfo = isVulnerable ? 
-                        'Unsanitized script content accepted' : 
+                        'Potentially dangerous script content accepted' : 
                         'Content properly sanitized or rejected';
                 }
                 break;
 
             case 'sqli':
-                // Only test fields that might interact with a database
-                const isDatabaseField = /^(username|password|email|search|query|id|name)$/i
+                const isDatabaseField = /^(username|password|email|search|query|id|name|filter|sort|order)$/i
                     .test(fieldContext.name);
                 
                 if (!isDatabaseField) {
                     isVulnerable = false;
                     additionalInfo = 'Field unlikely to interact with database';
                 } else {
-                    const hasSQLKeywords = /\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|WHERE)\b/i
+                    // Enhanced SQL injection detection
+                    const hasSQLKeywords = /\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|WHERE|FROM|JOIN)\b/i
                         .test(finalValue);
-                    const hasQuotes = finalValue.includes("'") || finalValue.includes('"');
-                    const hasEqualSign = finalValue.includes('=');
+                    const hasQuotes = /'|"|`/.test(finalValue);
+                    const hasEqualSign = /\s*=\s*/.test(finalValue);
+                    const hasComments = /--|#/.test(finalValue);
                     
                     isVulnerable = !isInvalid && !wasValueSanitized && 
-                                 (hasSQLKeywords || (hasQuotes && hasEqualSign));
+                                 ((hasSQLKeywords && (hasQuotes || hasComments)) || 
+                                  (hasQuotes && hasEqualSign));
                                  
                     additionalInfo = isVulnerable ?
-                        'SQL control characters accepted without sanitization' :
+                        'Potential SQL injection patterns accepted' :
                         'SQL patterns properly handled';
                 }
                 break;
 
             case 'special':
                 if (fieldContext.isTextArea || fieldContext.isRichText) {
-                    // These fields are expected to accept special characters
                     isVulnerable = false;
                     additionalInfo = 'Field type allows special characters';
                 } else {
-                    const hasSpecialChars = /[<>'"&;()\\]/.test(finalValue);
-                    isVulnerable = hasSpecialChars && !wasValueSanitized && 
-                                 !isInvalid && !fieldContext.pattern;
+                    // Enhanced special character detection
+                    const hasSpecialChars = /[<>'"&;()\\`~!@#$%^*]/.test(finalValue);
+                    const hasControlChars = /[\x00-\x1F\x7F]/.test(finalValue);
+                    
+                    isVulnerable = (hasSpecialChars || hasControlChars) && 
+                                 !wasValueSanitized && 
+                                 !isInvalid && 
+                                 !fieldContext.pattern;
                                  
                     additionalInfo = isVulnerable ?
-                        'Special characters accepted without validation' :
+                        'Potentially dangerous characters accepted without validation' :
                         'Special characters properly handled';
                 }
                 break;
         }
 
-        // 7. Reset field state
+        // 7. Reset field state - Now includes complete reset
         input.value = originalValue;
+        if (originalFieldState.classList) {
+            input.className = originalFieldState.classList.join(' ');
+        }
+        
+        // 8. Additional validation checks
+        const validationAttributes = ['required', 'minlength', 'maxlength', 'pattern', 'min', 'max'];
+        const hasValidation = validationAttributes.some(attr => input.hasAttribute(attr));
         
         return {
             isVulnerable,
@@ -143,8 +177,9 @@ async function testInputField(input, test) {
                 hasLengthLimit: fieldContext.maxLength > 0,
                 wasValueSanitized,
                 triggeredValidation: isInvalid,
-                isInForm: isInForm,
-                fieldName: fieldContext.name
+                isInForm,
+                fieldName: fieldContext.name,
+                hasValidationRules: hasValidation
             }
         };
 
@@ -158,6 +193,7 @@ async function testInputField(input, test) {
     }
 }
 
+// Rest of the code remains the same - runTests function and message listeners
 async function runTests() {
     try {
         console.log('Starting test run');
@@ -198,12 +234,10 @@ async function runTests() {
                         currentField: fieldResult.fieldName
                     });
                     
-                    // Reduced delay to speed up testing while still allowing for UI updates
                     await new Promise(resolve => setTimeout(resolve, 50));
                 }
             }
             
-            // Only add fields to results if they have vulnerabilities or are specifically marked safe
             if (fieldResult.vulnerabilities.length > 0) {
                 results.push(fieldResult);
             } else {
@@ -229,31 +263,27 @@ async function runTests() {
     }
 }
 
-// Listen for messages with improved error handling
+// Message listener
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('Content script received message:', message);
     
     if (message.action === "startTesting") {
         console.log('Starting input field testing process');
         try {
-            // Send immediate acknowledgment
             sendResponse({ status: 'received' });
             
-            // Start testing process
             const inputs = document.querySelectorAll('input:not([type="hidden"]), textarea');
             console.log(`Found ${inputs.length} input fields to test`);
             
-            // Send initial progress
             chrome.runtime.sendMessage({
                 type: 'progress',
                 progress: 0,
                 currentField: 'Starting test...'
             });
             
-            // Begin testing
             runTests(inputs);
             
-            return true; // Keep the message channel open
+            return true;
         } catch (error) {
             console.error('Error in message handler:', error);
             chrome.runtime.sendMessage({
@@ -264,7 +294,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 });
 
-// Announce that content script is loaded
 chrome.runtime.sendMessage({
     type: 'contentScriptLoaded',
     url: window.location.href
