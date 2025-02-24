@@ -49,6 +49,24 @@ tabs.forEach(tab => {
                     console.error('Error importing tab1 module:', importError);
                     throw importError;
                 }
+
+            } else if (file === 'tab2.html') {
+                try {
+                    console.log('Importing tab2.js module...');
+                    const tab2Module = await import('./script/tabs/tab2.js');
+                    console.log('Imported tab2.js module:', tab2Module);
+            
+                    if (tab2Module.default) {
+                        await tab2Module.default(); // Use default() instead of initializeTab2()
+                    } else {
+                        console.error('initializeTab2 function (default export) not found in module');
+                    }
+                } catch (importError) {
+                    console.error('Error importing tab2 module:', importError);
+                    throw importError;
+                }
+            
+                
             } else if (file === 'tab3.html') {
                 try {
                     console.log('Importing tab3.js module...');
