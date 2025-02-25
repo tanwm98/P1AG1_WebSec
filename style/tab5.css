@@ -1,104 +1,103 @@
 body {
-            background-color: #1a1a1a;
-            color: white;
-            font-family: Arial, sans-serif;
-            margin: 0;
-            width: 100vw;  /* Full viewport width */
-            box-sizing: border-box;  /* Include padding in width calculation */
-        }
+  background-color: #1a1a1a;
+  color: white;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  width: 100vw; /* Full viewport width */
+  box-sizing: border-box; /* Include padding in width calculation */
+}
 
-        .container {
-            width: 100%;
-            margin: 0 auto;
-            overflow-x: hidden;  /* Prevent container overflow */
-            padding: 1 rem;  /* Add padding inside container */
-            box-sizing: border-box;
-        }
+.container {
+  width: 100%;
+  margin: 0 auto;
+  overflow-x: hidden; /* Prevent container overflow */
+  padding: 1 rem; /* Add padding inside container */
+  box-sizing: border-box;
+}
 
-        .header {
-            background-color: #2d3748;
-            padding: 1rem;
-            border-radius: 8px;
-            text-align: center;
-            margin-bottom: 1rem;
-        }
+.header {
+  background-color: #2d3748;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 1rem;
+}
 
-        .button-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            width:100%;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
+.button-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  width: 100%;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
 
-        .action-button {
-            background-color: #4a5568;
-            border: none;
-            color: white;
-            padding: 1.5rem;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            transition: background-color 0.2s;
-            width:100%;
-            grid-column: 1 / -1;
-        }
+.action-button {
+  background-color: #4a5568;
+  border: none;
+  color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: background-color 0.2s;
+  width: 100%;
+  grid-column: 1 / -1;
+}
 
-        .action-button:hover {
-            background-color: #2d3748;
-        }
+.action-button:hover {
+  background-color: #2d3748;
+}
 
+.url-display {
+  background-color: #2d3748;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
 
-        .url-display {
-            background-color: #2d3748;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-top: 1rem;
-            max-height: 300px;
-            overflow-y: auto;
-        }
+.url-item {
+  font-family: monospace;
+  word-break: break-all;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid #4a5568;
+}
 
-        .url-item {
-            font-family: monospace;
-            word-break: break-all;
-            padding: 0.25rem 0;
-            border-bottom: 1px solid #4a5568;
-        }
+.download-btn {
+  background-color: transparent;
+  border: 1px solid #4a5568;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 1rem;
+  width: 100%;
+}
 
-        .download-btn {
-            background-color: transparent;
-            border: 1px solid #4a5568;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 1rem;
-            width: 100%;
-        }
+.download-btn:hover {
+  background-color: #4a5568;
+}
 
-        .download-btn:hover {
-            background-color: #4a5568;
-        }
+.filter-container {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #2d3748;
+  border-radius: 8px;
+}
 
-        .filter-container {
-            margin-top: 1rem;
-            padding: 1rem;
-            background-color: #2d3748;
-            border-radius: 8px;
-        }
+.filter-input {
+  width: 100%;
+  background-color: #1a1a1a;
+  border: 1px solid #4a5568;
+  color: white;
+  border-radius: 4px;
+}
 
-        .filter-input {
-            width: 100%;
-            background-color: #1a1a1a;
-            border: 1px solid #4a5568;
-            color: white;
-            border-radius: 4px;
-        }
-
-        .info-text {
-            color: #a0aec0;
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-        }
+.info-text {
+  color: #a0aec0;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
