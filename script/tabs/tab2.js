@@ -20,11 +20,19 @@ let detectedLibraries = [];
 function initializeTab2() {
   const analyzeButton = document.getElementById('analyze-btn');
   const resultsTable = document.getElementById('results-table').querySelector('tbody');
+  const loadingBarContainer = document.getElementById('loading-bar-container');
+  const loadingBar = document.getElementById('loading-bar');
 
   analyzeButton.addEventListener('click', async () => {
     resultsTable.innerHTML = ''; // Clear previous results
 
-    // Create and show loading indicator
+    // Remove any existing loading indicator
+    let existingLoadingIndicator = document.getElementById('loading-indicator');
+    if (existingLoadingIndicator) {
+      existingLoadingIndicator.remove();
+    }
+
+    // Create and show new loading text
     const loadingIndicator = document.createElement('div');
     loadingIndicator.id = 'loading-indicator';
     loadingIndicator.textContent = 'Scanning, please wait...';
@@ -33,7 +41,12 @@ function initializeTab2() {
     loadingIndicator.style.color = '#007BFF';
     document.getElementById('analysis-results').appendChild(loadingIndicator);
 
-    const allResults = [];
+    // Show loading bar and reset progress
+    loadingBarContainer.style.display = 'block';
+    loadingBar.style.width = '0%';
+
+    // Get the total number of detected libraries (to adjust speed)
+    let totalLibraries = 0;
 
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.scripting.executeScript(
@@ -43,13 +56,27 @@ function initializeTab2() {
         },
         async (results) => {
           if (results && results[0] && results[0].result) {
-            const { scripts, links, pageDomain } = results[0].result;
+            const { scripts, links } = results[0].result;
 
+            totalLibraries = scripts.length + links.length; // Count total libraries
+
+            // Dynamically adjust progress bar speed
+            let progress = 0;
+            let progressSpeed = Math.max(500 - totalLibraries * 20, 100); // Slow if fewer libraries, fast if many
+            const interval = setInterval(() => {
+              if (progress < 90) {
+                progress += 5;
+                loadingBar.style.width = progress + '%';
+              }
+            }, progressSpeed);
+
+            // Process libraries
+            const allResults = [];
             for (const src of scripts) {
-              allResults.push(await analyzeDependency(src, 'Script', pageDomain));
+              allResults.push(await analyzeDependency(src, 'Script', results[0].result.pageDomain));
             }
             for (const href of links) {
-              allResults.push(await analyzeDependency(href, 'Link', pageDomain));
+              allResults.push(await analyzeDependency(href, 'Link', results[0].result.pageDomain));
             }
 
             const sortedResults = allResults.sort((a, b) => {
@@ -59,13 +86,22 @@ function initializeTab2() {
             });
 
             sortedResults.forEach(addRowToTable);
-            // Remove loading indicator after scan is complete
-            document.getElementById('loading-indicator').remove();
+
+            // Complete the loading bar
+            clearInterval(interval);
+            loadingBar.style.width = '100%';
+
+            // Hide loading text and loading bar after a brief delay
+            setTimeout(() => {
+              loadingIndicator.remove();
+              loadingBarContainer.style.display = 'none';
+            }, 500);
           }
         }
       );
     });
   });
+
   
   function addRowToTable({ risk, library, version, thirdParty, type, source, cveData }) {
     
