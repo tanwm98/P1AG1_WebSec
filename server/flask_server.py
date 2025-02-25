@@ -109,6 +109,30 @@ def run_sublist3r(domain):
         logging.error(f"Error running Sublist3r: {str(e)}")
     return list(subdomains)
 
+ # DELETE AFTER DEMO
+def check_local_demo_subdomains(domain):
+    """Special function to detect local demo subdomains"""
+    if domain == "example.local":
+        # These are our known demo subdomains
+        demo_subdomains = [
+            "admin.example.local",
+            "api.example.local",
+            "dev.example.local"
+        ]
+
+        # Check if they resolve via the hosts file
+        found_subdomains = []
+        for subdomain in demo_subdomains:
+            try:
+                # This will work if the hosts file is configured
+                socket.gethostbyname(subdomain)
+                found_subdomains.append(subdomain)
+            except socket.gaierror:
+                pass
+
+        return found_subdomains
+
+    return []  # Return empty list for non-demo domains
 def find_subdomains(domain):
     logging.info(f"Starting subdomain enumeration for: {domain}")
     all_subdomains = set()
@@ -121,7 +145,11 @@ def find_subdomains(domain):
     for ns in nameservers:
         subdomains = try_zone_transfer(domain, ns)
         all_subdomains.update(subdomains)
-    
+
+    # DELETE AFTER DEMO
+    local_subdomains = check_local_demo_subdomains(domain)
+    all_subdomains.update(local_subdomains)
+
     # Check common subdomains
     common_subs = check_common_subdomains(domain)
     all_subdomains.update(common_subs)
