@@ -1,139 +1,6 @@
-class TechnologyDetector {
+class CDNWAFDetector {
   constructor() {
-    this.technologies = []; // Tech stack detections (e.g. Bootstrap, React, Apache, Nginx, etc.)
     this.cdnWafs = [];     // CDN/WAF detections
-    this.techPatterns = {
-      'React': {
-        detect: () => window._REACT_VERSION || document.querySelector('[data-reactroot], [data-reactid]') !== null,
-        getVersion: () => window._REACT_VERSION || this.getVersionFromPackage('react')
-      },
-      'Vue.js': {
-        detect: () => window.Vue || document.querySelector('[data-v-]') !== null,
-        getVersion: () => window.Vue?.version || this.getVersionFromPackage('vue')
-      },
-      'Angular': {
-        detect: () => window.angular || document.querySelector('[ng-version]') !== null,
-        getVersion: () => {
-          const ngVersion = document.querySelector('[ng-version]');
-          if (ngVersion) return ngVersion.getAttribute('ng-version');
-          if (window.angular && window.angular.version && window.angular.version.full) {
-            return window.angular.version.full;
-          }
-          return this.getVersionFromPackage('angular');
-        }
-      },
-      'jQuery': {
-        detect: () => window.jQuery || typeof $ !== 'undefined',
-        getVersion: () => window.jQuery?.fn?.jquery || this.getVersionFromPackage('jquery')
-      },
-      'WordPress': {
-            detect: () => !!document.querySelector('meta[name="generator"][content*="WordPress"]'),
-            getVersion: () => {
-              const generator = document.querySelector('meta[name="generator"]');
-              if (generator) {
-                const content = generator.getAttribute('content');
-                const match = content.match(/WordPress\s*(\d+\.\d+)/i);
-                return match ? match[1] : "Version detected but unknown";
-              }
-              return "Version unknown";
-            }
-          }
-    };
-  }
-
-  async detectTechStack() {
-    await Promise.all([
-      this.detectFromPatterns(),
-      this.detectFromDOM(),
-      this.detectFromQuickScripts(),
-      this.detectFromQuickMeta()
-    ]);
-  }
-
-  async detectFromPatterns() {
-    console.log('Detecting tech stack from patterns...');
-    for (const [techName, tech] of Object.entries(this.techPatterns)) {
-      try {
-        if (tech.detect()) {
-          console.log(`Detected ${techName}`);
-          const version = await tech.getVersion();
-          this.addTechnology(techName, version);
-        }
-      } catch (error) {
-        console.error(`Error detecting ${techName}:`, error);
-      }
-    }
-  }
-
-  detectFromDOM() {
-    console.log('Detecting tech stack from DOM...');
-    const frameworks = {
-      'Bootstrap': '[class*="bootstrap"]',
-      'Tailwind': '[class*="tw-"]',
-      'Material-UI': '[class*="MuiBox"], [class*="MuiButton"]',
-      'Foundation': '[class*="foundation"]'
-    };
-
-    for (const [framework, selector] of Object.entries(frameworks)) {
-      try {
-        if (document.querySelector(selector)) {
-          console.log(`Detected ${framework} from DOM`);
-          this.addTechnology(framework);
-        }
-      } catch (error) {
-        console.error(`Error detecting ${framework}:`, error);
-      }
-    }
-  }
-
-  detectFromQuickScripts() {
-    console.log('Detecting tech stack from scripts...');
-    const scripts = document.getElementsByTagName('script');
-    const scriptPatterns = {
-      'Google Analytics': 'google-analytics.com',
-      'Google Tag Manager': 'googletagmanager.com',
-      'React': 'react.',
-      'Vue.js': 'vue.',
-      'Angular': 'angular.',
-      'jQuery': 'jquery.'
-    };
-
-    for (const script of scripts) {
-      if (!script.src) continue;
-      const src = script.src.toLowerCase();
-      for (const [tech, pattern] of Object.entries(scriptPatterns)) {
-        try {
-          if (src.includes(pattern)) {
-            console.log(`Detected ${tech} from script src`);
-            this.addTechnology(tech);
-          }
-        } catch (error) {
-          console.error(`Error detecting ${tech} from scripts:`, error);
-        }
-      }
-    }
-  }
-
-  detectFromQuickMeta() {
-    console.log('Detecting tech stack from meta tags...');
-    const generator = document.querySelector('meta[name="generator"]');
-    if (generator) {
-      const content = generator.getAttribute('content');
-      if (content) {
-        try {
-          if (content.includes('WordPress')) {
-            console.log('Detected WordPress from meta');
-            this.addTechnology('WordPress');
-          }
-          if (content.includes('Drupal')) {
-            console.log('Detected Drupal from meta');
-            this.addTechnology('Drupal');
-          }
-        } catch (error) {
-          console.error('Error detecting from meta tags:', error);
-        }
-      }
-    }
   }
 
   // --- CDN/WAF DETECTION METHODS ---
@@ -218,49 +85,6 @@ class TechnologyDetector {
     }
   }
 
-  // --- HELPER METHODS ---
-  getVersionFromPackage(packageName) {
-    const scriptTags = document.getElementsByTagName('script');
-    const versionPatterns = [
-      new RegExp(`${packageName}[@-](\\d+(?:\\.\\d+){1,3})`, 'i'),
-      new RegExp(`${packageName}/?(\\d+(?:\\.\\d+){1,3})`, 'i'),
-      new RegExp(`${packageName}\\.(\\d+(?:\\.\\d+){1,3})\\.js`, 'i')
-    ];
-
-    for (const script of scriptTags) {
-      const src = script.src;
-      if (src && src.toLowerCase().includes(packageName.toLowerCase())) {
-        for (const pattern of versionPatterns) {
-          const match = src.match(pattern);
-          if (match && match[1]) {
-            console.log(`Found version for ${packageName}: ${match[1]} from ${src}`);
-            return match[1];
-          }
-        }
-      }
-    }
-
-    const globalVersions = {
-      'react': () => window.React?.version,
-      'vue': () => window.Vue?.version,
-      'angular': () => window.angular?.version?.full,
-      'jquery': () => window.jQuery?.fn?.jquery
-    };
-
-    if (globalVersions[packageName.toLowerCase()]) {
-      const version = globalVersions[packageName.toLowerCase()]();
-      if (version) return version;
-    }
-    return 'Version unknown';
-  }
-
-  addTechnology(name, version = 'Version unknown') {
-    if (!this.technologies.some(tech => tech.name === name)) {
-      console.log(`Adding technology: ${name} (${version})`);
-      this.technologies.push({ name, version, cve: null });
-    }
-  }
-
   addCDNWAF(name, version = 'Detected') {
     if (!this.cdnWafs.some(item => item.name === name)) {
       console.log(`Adding CDN/WAF: ${name} (${version})`);
@@ -268,46 +92,31 @@ class TechnologyDetector {
     }
   }
 
-  // Overall detection that returns both tech stack and CDN/WAF results.
+  // Overall detection that returns CDN/WAF results.
   async detect() {
     try {
-      console.log('Starting tech stack detection...');
+      console.log('Starting CDN/WAF detection...');
       const timeout = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Detection timed out')), 3000);
       });
-      const techPromise = this.detectTechStack();
-      await Promise.race([timeout, techPromise]);
-      console.log('Tech stack detection complete. Found:', this.technologies);
 
-      console.log('Starting CDN/WAF detection...');
       const cdnWafPromise = this.detectCDNWAF();
       await Promise.race([timeout, cdnWafPromise]);
       console.log('CDN/WAF detection complete. Found:', this.cdnWafs);
 
-      return { technologies: this.technologies, cdnWafs: this.cdnWafs };
+      return { cdnWafs: this.cdnWafs };
     } catch (error) {
       console.log('Detection stopped:', error.message);
-      return { technologies: this.technologies, cdnWafs: this.cdnWafs };
+      return { cdnWafs: this.cdnWafs };
     }
   }
 }
 
-const detector = new TechnologyDetector();
+const detector = new CDNWAFDetector();
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('Message received in techStack.js:', request);
-  if (request.action === "detectTechnologies") {
-    detector.detect().then(result => {
-      console.log('Detection result:', result);
-      // Send back both tech stack and CDN/WAF detections.
-      sendResponse(result);
-    }).catch(error => {
-      console.error('Detection error:', error);
-      sendResponse({ technologies: [], cdnWafs: [], error: error.message });
-    });
-    return true;
-  } else if (request.action === "detectWAFCDN") {
-    // This branch can be kept for legacy or specific use if needed.
+  console.log('Message received in detector.js:', request);
+  if (request.action === "detectWAFCDN") {
     Promise.all([
       // Get headers
       fetch(window.location.href, { credentials: 'include', mode: 'no-cors' })
@@ -332,7 +141,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       fetch(window.location.href, { credentials: 'include', mode: 'no-cors' })
         .then(response => response.text())
     ]).then(([headers, cookies, body]) => {
-      console.log("Sending legacy response with:", {
+      console.log("Sending response with:", {
         headerCount: headers.length,
         cookieCount: cookies.length,
         bodyLength: body.length

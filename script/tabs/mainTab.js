@@ -38,7 +38,7 @@ const wafSignatures = {
 		headers: ['x-f5-request-id', 'server'],
 		cookiePatterns: [/^TS[a-zA-Z0-9]{3,8}/, /^BIGipServer/],
 		bodyPatterns: [/The requested URL was rejected/, /Security by F5/]
-	}, // Add these to your wafSignatures object
+	},
 	fastly: {
 		headers: ['x-served-by', 'x-cache', 'x-timer'],
 		cookiePatterns: [/^fastly/],
@@ -135,8 +135,6 @@ function detectWAFBySignature(headers, cookies, body) {
 	return results.filter(result => result.confidence >= 30);
 }
 
-
-
 function populateTable(tableId, data, rowTemplate) {
 	const tableBody = document.getElementById(tableId);
 	if (!tableBody) {
@@ -157,7 +155,7 @@ function populateTable(tableId, data, rowTemplate) {
 		tableBody.innerHTML = html;
 	} catch (error) {
 		console.error(`Error populating table ${tableId}:`, error);
-		tableBody.innerHTML = `<tr><td colspan="3">No technologies detected</td></tr>`;
+		tableBody.innerHTML = `<tr><td colspan="3">No data detected</td></tr>`;
 	}
 }
 
@@ -171,67 +169,43 @@ export function initializeMainPage() {
 		const activeTab = tabs[0];
 		if (!activeTab?.id) {
 			console.error("No active tab found");
-			populateTable("techStackBody", [{
+			populateTable("wafCdnBody", [{
 				name: "Error",
-				version: "No active tab found",
-				cve: null
+				status: "No active tab found"
 			}]);
 			return;
 		}
 
-		// Send one message that returns both tech stack and CDN/WAF detections.
-		console.log("Sending detectTechnologies message to tab:", activeTab.id);
+		// Send message to detect WAF/CDN
+		console.log("Sending detectWAFCDN message to tab:", activeTab.id);
 		chrome.tabs.sendMessage(activeTab.id, {
-			action: "detectTechnologies"
+			action: "detectWAFCDN"
 		}, (response) => {
 			console.log("Raw response:", response);
 
 			if (chrome.runtime.lastError) {
 				console.error("Chrome runtime error:", chrome.runtime.lastError);
-				populateTable("techStackBody", [{
+				populateTable("wafCdnBody", [{
 					name: "Error",
-					version: "Failed to detect technologies",
-					cve: null
+					status: "Failed to detect WAF/CDN"
 				}]);
 				return;
 			}
 
-			if (!response || (!response.technologies && !response.cdnWafs)) {
+			if (!response || (!response.headers && !response.cookies)) {
 				console.error("Invalid response format:", response);
-				populateTable("techStackBody", [{
+				populateTable("wafCdnBody", [{
 					name: "Error",
-					version: "No technologies detected",
-					cve: null
+					status: "No WAF/CDN detected"
 				}]);
 				return;
 			}
 
-			const {
-				technologies,
-				cdnWafs
-			} = response;
+			const { headers, cookies, body } = response;
+			const detectedWafs = detectWAFBySignature(headers, cookies, body);
 
-			// Populate the Tech Stack table.
-			if (technologies.length === 0) {
-				populateTable("techStackBody", [{
-					name: "No technologies detected",
-					version: "N/A",
-					cve: null
-				}]);
-			} else {
-				populateTable("techStackBody", technologies, row => `
-          <tr>
-            <td>${row.name || "Unknown"}</td>
-            <td>${row.version || "N/A"}</td>
-            <td>
-              <a href="#" class="view-link" data-tech="${row.name}" data-version="${row.version || ""}">View</a>
-            </td>
-          </tr>
-        `);
-			}
-
-			// Populate the CDN/WAF table.
-			if (cdnWafs.length === 0) {
+			// Populate the WAF/CDN table
+			if (detectedWafs.length === 0) {
 				populateTable("wafCdnBody", [{
 					name: "WAF/CDN",
 					status: "Not Detected"
@@ -246,12 +220,12 @@ export function initializeMainPage() {
           </tr>
         `);
 			} else {
-				populateTable("wafCdnBody", cdnWafs, row => `
+				populateTable("wafCdnBody", detectedWafs, row => `
           <tr>
             <td>${row.name}</td>
             <td class="status-cell">
               <span class="status-indicator status-true">
-                ✓ Detected
+                ✓ Detected (${row.confidence.toFixed(0)}%)
               </span>
             </td>
           </tr>
@@ -260,8 +234,9 @@ export function initializeMainPage() {
 		});
 	});
 
-	// Storage/Authentication Analysis remains unchanged.
-	const storageData = [{
+	// Storage/Authentication Analysis
+	const storageData = [
+		{
 			type: "Cookie Storage",
 			action: "Analyze"
 		},
@@ -284,38 +259,16 @@ export function initializeMainPage() {
     </tr>
   `);
 
-	// Event listener for view links (CVE and Storage).
+	// Event listener for view links (Storage)
 	document.addEventListener("click", (event) => {
 		if (event.target.classList.contains("view-link")) {
 			event.preventDefault();
-			const tech = event.target.dataset.tech;
-			const version = event.target.dataset.version;
 			const type = event.target.dataset.type;
-
-			if (tech) {
-				showCVEDetails(tech, version);
-			} else if (type) {
+			if (type) {
 				showStorageDetails(type);
 			}
 		}
 	});
-}
-
-// Helper function to build the NVD CVE search URL using technology name and version.
-function buildCveSearchUrl(techName, version) {
-	if (!version || version === "Version unknown" || version === "N/A" ||
-		version === "WAF" || version === "CDN") {
-		const query = encodeURIComponent(techName.toLowerCase().replace(/\.js$/, ""));
-		return `https://nvd.nist.gov/vuln/search/results?form_type=Basic&results_type=overview&query=${query}&search_type=all`;
-	}
-	const query = encodeURIComponent(`${techName.toLowerCase().replace(/\.js$/, "")} ${version}`);
-	return `https://nvd.nist.gov/vuln/search/results?form_type=Basic&results_type=overview&query=${query}&search_type=all`;
-}
-
-// Opens the CVE details page in a new window/tab.
-function showCVEDetails(techName, version) {
-	const url = buildCveSearchUrl(techName, version);
-	window.open(url, "_blank");
 }
 
 // Displays storage details in a mini modal window.
