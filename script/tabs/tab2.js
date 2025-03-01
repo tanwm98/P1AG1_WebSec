@@ -24,7 +24,7 @@ function initializeTab2() {
   const loadingBar = document.getElementById('loading-bar');
 
   analyzeButton.addEventListener('click', async () => {
-    resultsTable.innerHTML = ''; // Clear previous results
+    resultsTable.innerHTML = ''; 
 
     // Remove any existing loading indicator
     let existingLoadingIndicator = document.getElementById('loading-indicator');
@@ -60,9 +60,8 @@ function initializeTab2() {
 
             totalLibraries = scripts.length + links.length; // Count total libraries
 
-            // Dynamically adjust progress bar speed
             let progress = 0;
-            let progressSpeed = Math.max(500 - totalLibraries * 20, 100); // Slow if fewer libraries, fast if many
+            let progressSpeed = Math.max(500 - totalLibraries * 20, 100);
             const interval = setInterval(() => {
               if (progress < 90) {
                 progress += 5;
@@ -87,11 +86,9 @@ function initializeTab2() {
 
             sortedResults.forEach(addRowToTable);
 
-            // Complete the loading bar
             clearInterval(interval);
             loadingBar.style.width = '100%';
 
-            // Hide loading text and loading bar after a brief delay
             setTimeout(() => {
               loadingIndicator.remove();
               loadingBarContainer.style.display = 'none';
@@ -204,6 +201,9 @@ function displayErrorMessage(message) {
 }
 
 async function fetchFilteredCveData(library, version) {
+
+  const apiKey = "c3b30601-94dc-4d8e-893a-0f22fd64f9b2";
+
   // Normalize library names for correct CPE format
   const cpeMapping = {
     "jQuery": "jquery:jquery",
@@ -241,16 +241,22 @@ async function fetchFilteredCveData(library, version) {
     .replace(/%3A/g, ":")
     .replace(/%2A/g, "*")}`;
 
-    console.log(library, version); 
-    console.log(apiUrl);
+    console.log(`Fetching CVE data for ${library} v${version}: ${apiUrl}`);
 
   try {
-    const response = await fetch(apiUrl);
+    const response = await fetch(apiUrl, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "apiKey": apiKey,
+      },
+    });
+
     if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
     const data = await response.json();
     if (data && data.vulnerabilities) {
-      const filteredCves = data.vulnerabilities.map(vuln => ({
+      return data.vulnerabilities.map(vuln => ({
         id: vuln.cve.id,
         severity: vuln.cve.metrics?.cvssMetricV31?.[0]?.cvssData?.baseSeverity ||
           vuln.cve.metrics?.cvssMetricV30?.[0]?.cvssData?.baseSeverity ||
@@ -260,16 +266,15 @@ async function fetchFilteredCveData(library, version) {
           vuln.cve.metrics?.cvssMetricV2?.[0]?.cvssData?.baseScore || "N/A",
         description: vuln.cve.descriptions?.[0]?.value || "No description available"
       }));
-      return filteredCves;
     } else {
       return [];
     }
   } catch (error) {
+    console.error("Error fetching CVE data:", error);
     error.apiUrl = apiUrl;
     throw error;
   }
 }
-
   function analyzePage() {
     const pageDomain = window.location.hostname;
 
