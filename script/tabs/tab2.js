@@ -200,6 +200,10 @@ function displayErrorMessage(message) {
     return detectedLibraries;
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function fetchFilteredCveData(library, version) {
 
   const apiKey = "c3b30601-94dc-4d8e-893a-0f22fd64f9b2";
@@ -273,6 +277,9 @@ async function fetchFilteredCveData(library, version) {
     console.error("Error fetching CVE data:", error);
     error.apiUrl = apiUrl;
     throw error;
+  }  finally {
+    console.log("Sleeping for 1 second to avoid rate limits...");
+    await sleep(1000);
   }
 }
   function analyzePage() {
