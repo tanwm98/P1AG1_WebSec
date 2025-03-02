@@ -19,8 +19,8 @@ const testCases = {
     sqli: {
         name: 'SQL Injection',
         tests: [
-            { payload: "' OR '1'='1", description: 'Basic SQLi', type: 'sqli' },
-            { payload: '" OR "1"="1', description: 'Double Quote SQLi', type: 'sqli' },
+            { payload: "' OR 1=1--", description: 'Basic SQLi', type: 'sqli' },
+            { payload: '" OR 1=1--', description: 'Double Quote SQLi', type: 'sqli' },
             { payload: '1; DROP TABLE users--', description: 'Command SQLi', type: 'sqli' },
             { payload: 'UNION SELECT * FROM users', description: 'UNION SQLi', type: 'sqli' }  // Added test
         ]
@@ -35,6 +35,23 @@ const testCases = {
     }
 };
 
+// Updated helper to detect common SQL escaping patterns
+function isSQLPayloadEscaped(original, final) {
+    // Check if single quotes are escaped by doubling them
+    const fixedSingleQuotes = final.replace(/''/g, "'");
+    if (fixedSingleQuotes === original) return true;
+    
+    // Check if single quotes are escaped with a backslash
+    const fixedSingleQuotesBackslash = final.replace(/\\'/g, "'");
+    if (fixedSingleQuotesBackslash === original) return true;
+    
+    // Check if double quotes are escaped with a backslash
+    const fixedDoubleQuotes = final.replace(/\\"/g, '"');
+    if (fixedDoubleQuotes === original) return true;
+    
+    return false;
+}
+
 async function testInputField(input, test) {
     try {
         // 1. Save initial state
@@ -42,9 +59,10 @@ async function testInputField(input, test) {
         const form = input.form;
         let isInForm = !!form;
         
-        // 2. Analyze field context - Fixed circular reference
+        // 2. Analyze field context
         const fieldContext = {
             name: input.name?.toLowerCase() || '',
+            id: input.id?.toLowerCase() || '',
             type: input.type,
             isTextArea: input.tagName === 'TEXTAREA',
             isRichText: input.getAttribute('contenteditable') === 'true',
@@ -52,29 +70,57 @@ async function testInputField(input, test) {
             pattern: input.pattern
         };
 
-        // Add acceptsHTML property after object creation
-        fieldContext.acceptsHTML = ['html', 'richtext', 'editor', 'content'].some(term => 
-            fieldContext.name.includes(term)
-        );
+        fieldContext.acceptsHTML = ['html', 'richtext', 'editor', 'content', 'message', 'description'].some(term => 
+            fieldContext.name.includes(term) || fieldContext.id.includes(term)
+        ) || fieldContext.isRichText;
 
-        // 3. Set test value
+        const dbRelatedTerms = ['username', 'user', 'password', 'pass', 'pwd', 'email', 'mail', 
+                                'search', 'query', 'q', 'id', 'name', 'login', 'account', 
+                                'filter', 'sort', 'order', 'number', 'code', 'key', 'param', 'value'];
+        fieldContext.isDatabaseField = dbRelatedTerms.some(term => 
+            fieldContext.name.includes(term) || fieldContext.id.includes(term)
+        );
+        
+        // 3. Prepare for testing
+        const originalPayload = test.payload;
+        
+        // 4. Set test value and dispatch events
         input.value = test.payload;
         input.dispatchEvent(new Event('input', { bubbles: true }));
         input.dispatchEvent(new Event('change', { bubbles: true }));
         input.dispatchEvent(new Event('blur', { bubbles: true }));
+        
+        // If input is in a form, simulate form submission to trigger form-level validation
+        if (isInForm && form) {
+            const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+            const submitListener = function(e) {
+                e.preventDefault();
+            };
+            form.addEventListener('submit', submitListener);
+            form.dispatchEvent(submitEvent);
+            form.removeEventListener('submit', submitListener);
+        }
 
-        // 4. Wait for validation - Increased timeout
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // 5. Wait for validations to complete
+        await new Promise(resolve => setTimeout(resolve, 700));
 
-        // 5. Gather validation results - Enhanced validation checks
+        // 6. Gather validation results
         const finalValue = input.value;
-        const wasValueSanitized = finalValue !== test.payload;
+        let wasURLEncoded = false;
+        try {
+            if (finalValue !== originalPayload) {
+                const decodedValue = decodeURIComponent(finalValue);
+                wasURLEncoded = decodedValue === originalPayload;
+            }
+        } catch (e) {
+            wasURLEncoded = false;
+        }
+        const wasValueSanitized = finalValue !== originalPayload && !wasURLEncoded;
         const isInvalid = !input.validity.valid || 
-                         input.getAttribute('aria-invalid') === 'true' ||
-                         input.classList.contains('invalid') ||
-                         input.classList.contains('error');
+                          input.getAttribute('aria-invalid') === 'true' ||
+                          input.classList.contains('invalid') ||
+                          input.classList.contains('error');
 
-        // Store original field state before further tests
         const originalFieldState = {
             value: input.value,
             validity: input.validity.valid,
@@ -82,58 +128,121 @@ async function testInputField(input, test) {
             attributes: {}
         };
         
-        // 6. Type-specific vulnerability checks
+        // 7. Type-specific vulnerability checks
         let isVulnerable = false;
         let additionalInfo = '';
+        let detectedPattern = '';
         
         switch(test.type) {
             case 'xss':
-                if (fieldContext.acceptsHTML || fieldContext.isRichText) {
+                if (fieldContext.acceptsHTML) {
                     isVulnerable = false;
                     additionalInfo = 'Field is designed to accept HTML content';
                 } else {
-                    // Enhanced XSS detection
-                    const containsScriptTag = finalValue.toLowerCase().includes('<script');
-                    const containsEscapedScript = finalValue.includes('&lt;script') || 
-                                                finalValue.includes('&#');
+                    const wasHTMLEscaped = finalValue.includes('&lt;') || 
+                                            finalValue.includes('&gt;') || 
+                                            finalValue.includes('&amp;');
+                    const hasUnescapedScriptTag = finalValue.toLowerCase().includes('<script') && 
+                                                  !finalValue.toLowerCase().includes('&lt;script');
                     const hasJavaScriptProtocol = finalValue.toLowerCase().includes('javascript:');
                     const hasEventHandler = /\bon\w+\s*=/i.test(finalValue);
-                    const hasTemplateExpression = /\${\s*.*\s*}/g.test(finalValue);
                     
-                    isVulnerable = !isInvalid && !wasValueSanitized && 
-                                 (containsScriptTag && !containsEscapedScript) || 
-                                 hasJavaScriptProtocol ||
-                                 hasEventHandler ||
-                                 hasTemplateExpression;
+                    isVulnerable = !isInvalid && 
+                                   !wasValueSanitized && 
+                                   !wasHTMLEscaped &&
+                                   (hasUnescapedScriptTag || hasJavaScriptProtocol || hasEventHandler);
+                    
+                    if (isVulnerable) {
+                        if (hasUnescapedScriptTag) detectedPattern = 'script tag';
+                        else if (hasJavaScriptProtocol) detectedPattern = 'javascript protocol';
+                        else if (hasEventHandler) detectedPattern = 'event handler';
+                    }
                     
                     additionalInfo = isVulnerable ? 
-                        'Potentially dangerous script content accepted' : 
+                        `Unsanitized ${detectedPattern} accepted` : 
                         'Content properly sanitized or rejected';
                 }
                 break;
 
             case 'sqli':
-                const isDatabaseField = /^(username|password|email|search|query|id|name|filter|sort|order)$/i
-                    .test(fieldContext.name);
-                
-                if (!isDatabaseField) {
+                if (!fieldContext.isDatabaseField) {
                     isVulnerable = false;
                     additionalInfo = 'Field unlikely to interact with database';
                 } else {
-                    // Enhanced SQL injection detection
-                    const hasSQLKeywords = /\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|WHERE|FROM|JOIN)\b/i
-                        .test(finalValue);
-                    const hasQuotes = /'|"|`/.test(finalValue);
-                    const hasEqualSign = /\s*=\s*/.test(finalValue);
-                    const hasComments = /--|#/.test(finalValue);
+                    const payload = originalPayload.toLowerCase();
+                    const finalValueLower = finalValue.toLowerCase();
+                    let sqlInjectionType = '';
                     
-                    isVulnerable = !isInvalid && !wasValueSanitized && 
-                                 ((hasSQLKeywords && (hasQuotes || hasComments)) || 
-                                  (hasQuotes && hasEqualSign));
-                                 
-                    additionalInfo = isVulnerable ?
-                        'Potential SQL injection patterns accepted' :
-                        'SQL patterns properly handled';
+                    const checkPatterns = [
+                        {
+                            name: 'authentication bypass',
+                            check: () => {
+                                if (payload.includes("' or ") && finalValueLower.includes("' or ")) {
+                                    return true;
+                                }
+                                if (payload.includes('" or ') && finalValueLower.includes('" or ')) {
+                                    return true;
+                                }
+                                return false;
+                            }
+                        },
+                        {
+                            name: 'command injection',
+                            check: () => {
+                                if (payload.includes(';') && 
+                                    /\b(select|insert|update|delete|drop|alter|create)\b/i.test(payload) &&
+                                    finalValueLower.includes(';') && 
+                                    /\b(select|insert|update|delete|drop|alter|create)\b/i.test(finalValueLower)) {
+                                    return true;
+                                }
+                                return false;
+                            }
+                        },
+                        {
+                            name: 'UNION-based extraction',
+                            check: () => {
+                                if (/\bunion\s+select\b/i.test(payload) && 
+                                    /\bunion\s+select\b/i.test(finalValueLower)) {
+                                    return true;
+                                }
+                                return false;
+                            }
+                        },
+                        {
+                            name: 'comment-based termination',
+                            check: () => {
+                                const hasComment = payload.includes('--') || payload.includes('#');
+                                const hasCommentInFinal = finalValueLower.includes('--') || 
+                                                          finalValueLower.includes('#');
+                                if ((payload.includes("'") || payload.includes('"')) && 
+                                    hasComment && 
+                                    (finalValueLower.includes("'") || finalValueLower.includes('"')) && 
+                                    hasCommentInFinal) {
+                                    return true;
+                                }
+                                return false;
+                            }
+                        }
+                    ];
+                    
+                    for (const pattern of checkPatterns) {
+                        if (pattern.check()) {
+                            isVulnerable = true;
+                            sqlInjectionType = pattern.name;
+                            break;
+                        }
+                    }
+                    
+                    // Check for common escaping mechanisms. If the payload appears escaped, treat it as sanitized.
+                    if (isSQLPayloadEscaped(originalPayload, finalValue)) {
+                        isVulnerable = false;
+                        additionalInfo = 'SQL injection patterns escaped';
+                    } else {
+                        isVulnerable = isVulnerable && !isInvalid && !wasValueSanitized;
+                        additionalInfo = isVulnerable ?
+                            `SQL injection vulnerability (${sqlInjectionType})` :
+                            'SQL injection patterns properly handled';
+                    }
                 }
                 break;
 
@@ -142,32 +251,40 @@ async function testInputField(input, test) {
                     isVulnerable = false;
                     additionalInfo = 'Field type allows special characters';
                 } else {
-                    // Enhanced special character detection
-                    const hasSpecialChars = /[<>'"&;()\\`~!@#$%^*]/.test(finalValue);
-                    const hasControlChars = /[\x00-\x1F\x7F]/.test(finalValue);
+                    let decodedFinalValue = finalValue;
+                    try {
+                        if (wasURLEncoded) {
+                            decodedFinalValue = decodeURIComponent(finalValue);
+                        }
+                    } catch (e) {
+                        decodedFinalValue = finalValue;
+                    }
+                    const hasSpecialChars = /[<>'"&;()\\`~!@#$%^*]/.test(decodedFinalValue);
+                    const hasControlChars = /[\x00-\x1F\x7F]/.test(decodedFinalValue);
                     
                     isVulnerable = (hasSpecialChars || hasControlChars) && 
-                                 !wasValueSanitized && 
-                                 !isInvalid && 
-                                 !fieldContext.pattern;
-                                 
+                                   !wasValueSanitized && 
+                                   !isInvalid && 
+                                   !fieldContext.pattern;
+                    
                     additionalInfo = isVulnerable ?
-                        'Potentially dangerous characters accepted without validation' :
+                        'Special characters accepted without proper validation' :
                         'Special characters properly handled';
                 }
                 break;
         }
 
-        // 7. Reset field state - Now includes complete reset
+        // 8. Reset field state
         input.value = originalValue;
         if (originalFieldState.classList) {
             input.className = originalFieldState.classList.join(' ');
         }
         
-        // 8. Additional validation checks
+        // 9. Additional validation checks
         const validationAttributes = ['required', 'minlength', 'maxlength', 'pattern', 'min', 'max'];
         const hasValidation = validationAttributes.some(attr => input.hasAttribute(attr));
         
+        // 10. Return test results with detailed context
         return {
             isVulnerable,
             additionalInfo,
@@ -176,10 +293,17 @@ async function testInputField(input, test) {
                 hasPattern: !!fieldContext.pattern,
                 hasLengthLimit: fieldContext.maxLength > 0,
                 wasValueSanitized,
+                wasURLEncoded,
+                originalValue: originalPayload,
+                finalValue: finalValue,
                 triggeredValidation: isInvalid,
                 isInForm,
                 fieldName: fieldContext.name,
-                hasValidationRules: hasValidation
+                fieldId: fieldContext.id,
+                hasValidationRules: hasValidation,
+                isDatabaseField: fieldContext.isDatabaseField,
+                acceptsHTML: fieldContext.acceptsHTML,
+                detectedPattern
             }
         };
 
@@ -193,7 +317,7 @@ async function testInputField(input, test) {
     }
 }
 
-// Rest of the code remains the same - runTests function and message listeners
+// Run tests on all input fields
 async function runTests() {
     try {
         console.log('Starting test run');
@@ -272,17 +396,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         try {
             sendResponse({ status: 'received' });
             
-            const inputs = document.querySelectorAll('input:not([type="hidden"]), textarea');
-            console.log(`Found ${inputs.length} input fields to test`);
-            
             chrome.runtime.sendMessage({
                 type: 'progress',
                 progress: 0,
                 currentField: 'Starting test...'
             });
             
-            runTests(inputs);
-            
+            runTests();
             return true;
         } catch (error) {
             console.error('Error in message handler:', error);
